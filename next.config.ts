@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // フルカレンダーのクラスコンポーネントが正しくインスタンス化されるようにトランスパイル対象に追加
+  transpilePackages: [
+    "@fullcalendar/common",
+    "@fullcalendar/react",
+    "@fullcalendar/daygrid",
+    "@fullcalendar/interaction",
+    "@fullcalendar/core",
+  ],
   experimental: {
     agentFeedback: true,
   },
