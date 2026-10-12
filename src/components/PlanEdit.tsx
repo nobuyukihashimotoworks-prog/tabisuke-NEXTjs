@@ -1,27 +1,48 @@
+"use client";
+
 import { useState } from "react";
+import { Plan } from "@/types/plan";
 import HeaderLogo from "./HeaderLogo";
 import CalendarCard from "./CalendarCard";
 import CustomModal from "./CustomModal";
 
-// 【修正点】親コンポーネントから既存のプラン一覧 (plans) を受け取れるようにプロパティを追加
-export default function PlanEdit({ plan, plans = [], onBack, onUpdatePlan }) {
+interface DateRangeType {
+  startDate: string | null;
+  endDate: string | null;
+}
+
+interface PlanEditProps {
+  plan?: Plan | null;
+  plans?: Plan[];
+  onBack: () => void;
+  onUpdatePlan?: (updatedPlan: Plan) => void;
+}
+
+export default function PlanEdit({
+  plan,
+  plans = [],
+  onBack,
+  onUpdatePlan,
+}: PlanEditProps) {
   const [title, setTitle] = useState(plan?.title || "");
 
   // 単日（plan.date）または 期間（plan.dateRange）に対応
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<DateRangeType>({
     startDate: plan?.dateRange?.startDate || plan?.date || null,
     endDate: plan?.dateRange?.endDate || plan?.date || null,
   });
 
   // モーダルの表示ステート ("none" | "alert" | "confirm" | "complete")
-  const [modalState, setModalState] = useState("none");
+  const [modalState, setModalState] = useState<
+    "none" | "alert" | "confirm" | "complete"
+  >("none");
   const [alertMessage, setAlertMessage] = useState("");
 
-  // 【修正点】タイトルの文字数が30文字を超えているかどうかの判定フラグ (設計書・新規登録画面と仕様を統一)
+  // タイトルの文字数が30文字を超えているかどうかの判定フラグ
   const isTitleTooLong = title.length > 30;
 
-  // 【修正点】指定された日付（YYYY-MM-DD）が「自分自身を除く」既存の旅程と重複しているかチェックする関数
-  const isDateBooked = (dateStr) => {
+  // 指定された日付（YYYY-MM-DD）が「自分自身を除く」既存の旅程と重複しているかチェックする関数
+  const isDateBooked = (dateStr: string) => {
     return plans.some((p) => {
       // 編集中の自分自身のプランIDと一致する場合は、重複チェックの対象外（除外）にする
       if (p.id === plan?.id) return false;
@@ -32,16 +53,16 @@ export default function PlanEdit({ plan, plans = [], onBack, onUpdatePlan }) {
     });
   };
 
-  // カレンダーでタップされた時の期間選択処理（ダブルブッキング防止ロジックを追加）
-  const handleDateSelect = (selectedDateStr) => {
-    // 【修正点 A】タップした単一の日付がすでに他の予約と重複しているかチェック
+  // カレンダーでタップされた時の期間選択処理
+  const handleDateSelect = (selectedDateStr: string) => {
+    // A. タップした単一の日付がすでに他の予約と重複しているかチェック
     if (isDateBooked(selectedDateStr)) {
       setAlertMessage("ダブルブッキングはできません！！");
       setModalState("alert");
       return;
     }
 
-    // 【修正点 B】期間選択時（開始日〜選択した終了日の間に他の既存予定が含まれていないかチェック）
+    // B. 期間選択時（開始日〜選択した終了日の間に他の既存予定が含まれていないかチェック）
     if (dateRange.startDate && !dateRange.endDate) {
       if (selectedDateStr >= dateRange.startDate) {
         const hasOverlap = plans.some((p) => {
@@ -49,7 +70,10 @@ export default function PlanEdit({ plan, plans = [], onBack, onUpdatePlan }) {
           const start = p.dateRange?.startDate;
           if (!start) return false;
           const end = p.dateRange?.endDate || start;
-          return !(selectedDateStr < start || dateRange.startDate > end);
+          return !(
+            selectedDateStr < start ||
+            (dateRange.startDate && dateRange.startDate > end)
+          );
         });
 
         if (hasOverlap) {
@@ -95,7 +119,7 @@ export default function PlanEdit({ plan, plans = [], onBack, onUpdatePlan }) {
     return dateRange.startDate || "日付未選択";
   };
 
-  // 「旅程を変更する」ボタンを押したとき（新規登録画面と同様の入力チェック・バリデーションを追加）
+  // 「旅程を変更する」ボタンを押したとき
   const handleOpenConfirm = () => {
     // 1. 日付選択チェック
     if (!dateRange.startDate) {
@@ -125,10 +149,12 @@ export default function PlanEdit({ plan, plans = [], onBack, onUpdatePlan }) {
 
   // 確認モーダルで「はい」を押したときのデータ更新処理
   const handleConfirm = () => {
+    if (!plan) return;
+
     const updatedTitle = title.trim() !== "" ? title.trim() : plan.title;
     const finalEndDate = dateRange.endDate || dateRange.startDate;
 
-    const updatedPlan = {
+    const updatedPlan: Plan = {
       ...plan,
       title: updatedTitle,
       date: getFormattedDateText(),
@@ -164,8 +190,7 @@ export default function PlanEdit({ plan, plans = [], onBack, onUpdatePlan }) {
         <p className="text-lg font-bold text-app-main mt-4">いつ行きますか？</p>
       </div>
 
-      {/* 3. カレンダー（期間選択・重複チェック機能つき） */}
-      {/* 【修正点】重複チェックを行うため、plans を CalendarCard にも渡す */}
+      {/* 3. カレンダー */}
       <CalendarCard
         onDateSelect={handleDateSelect}
         dateRange={dateRange}
@@ -178,7 +203,6 @@ export default function PlanEdit({ plan, plans = [], onBack, onUpdatePlan }) {
           予定を立て直しますか？
         </p>
 
-        {/* 【修正点】新規登録画面と同様のタイトル入力欄（文字数制限・超過時の赤字エラー表示機能付き） */}
         <div className="w-full space-y-1">
           <input
             type="text"

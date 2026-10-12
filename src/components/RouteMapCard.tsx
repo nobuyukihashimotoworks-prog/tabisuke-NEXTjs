@@ -1,24 +1,51 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMapsLibrary } from "../utils/googleMapsLoader";
 
-export default function RouteMapCard({ destination }) {
-  const mapRef = useRef(null);
+interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+interface DestinationObj {
+  lat?: number;
+  latitude?: number;
+  lng?: number;
+  longitude?: number;
+  mainText?: string;
+  description?: string;
+  name?: string;
+  address?: string;
+  placeId?: string;
+}
+
+interface RouteMapCardProps {
+  destination: string | DestinationObj | null | undefined;
+}
+
+export default function RouteMapCard({ destination }: RouteMapCardProps) {
+  const mapRef = useRef<HTMLDivElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [selectedMode, setSelectedMode] = useState("DRIVING");
-  const [currentOrigin, setCurrentOrigin] = useState(null);
+  const [selectedMode, setSelectedMode] = useState<
+    "DRIVING" | "WALKING" | "BICYCLE"
+  >("DRIVING");
+  const [currentOrigin, setCurrentOrigin] = useState<LatLng | null>(null);
 
-  const mapInstanceRef = useRef(null);
-  const directionsRendererRef = useRef(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapInstanceRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const directionsRendererRef = useRef<any>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     // 現在地取得
-    const getCurrentLocation = () => {
+    const getCurrentLocation = (): Promise<LatLng> => {
       return new Promise((resolve) => {
-        const defaultLocation = { lat: 35.681236, lng: 139.767125 };
+        const defaultLocation: LatLng = { lat: 35.681236, lng: 139.767125 };
 
         if (!navigator.geolocation) {
           resolve(defaultLocation);
@@ -39,7 +66,7 @@ export default function RouteMapCard({ destination }) {
             if (!hasResolved) {
               hasResolved = true;
               clearTimeout(timer);
-              const loc = {
+              const loc: LatLng = {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude,
               };
@@ -105,7 +132,8 @@ export default function RouteMapCard({ destination }) {
         }
 
         // 目的地の形式を安全に判別
-        let destinationParam = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let destinationParam: any = null;
 
         if (typeof destination === "string") {
           destinationParam = destination.trim();
@@ -150,7 +178,8 @@ export default function RouteMapCard({ destination }) {
             destination: destinationParam,
             travelMode: modeMap[selectedMode] || TravelMode.DRIVING,
           },
-          (result, status) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (result: any, status: string) => {
             if (!isMounted) return;
 
             if (status === "OK" && result) {
@@ -193,7 +222,7 @@ export default function RouteMapCard({ destination }) {
         placeIdParam = `&destination_place_id=${destination.placeId}`;
       }
     } else {
-      destParam = encodeURIComponent(destination || "");
+      destParam = encodeURIComponent(String(destination || ""));
     }
 
     if (currentOrigin) {

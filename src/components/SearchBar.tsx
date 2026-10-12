@@ -1,17 +1,34 @@
-import { useState, useEffect, useRef } from "react";
+"use client";
+
+import { useState, useEffect, useRef, FormEvent, ChangeEvent } from "react";
 import { loadGoogleMapsLibrary } from "../utils/googleMapsLoader";
 import CustomModal from "./CustomModal";
 
-export default function SearchBar({ onSearch }) {
+interface SearchData {
+  description: string;
+  placeId?: string;
+  mainText: string;
+  secondaryText: string;
+  lat: number | null;
+  lng: number | null;
+}
+
+interface SearchBarProps {
+  onSearch: (searchData: string | SearchData) => void;
+}
+
+export default function SearchBar({ onSearch }: SearchBarProps) {
   const [inputValue, setInputValue] = useState("");
-  const [predictions, setPredictions] = useState([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [predictions, setPredictions] = useState<any[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
 
-  const placesLibRef = useRef(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const placesLibRef = useRef<any>(null);
 
   useEffect(() => {
     loadGoogleMapsLibrary("places")
@@ -24,7 +41,7 @@ export default function SearchBar({ onSearch }) {
   }, []);
 
   // 入力時のリアルタイム候補取得
-  const handleInputChange = async (e) => {
+  const handleInputChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
     setErrorMessage("");
@@ -62,7 +79,8 @@ export default function SearchBar({ onSearch }) {
   };
 
   // 候補選択時（安全な toPlace 呼び出しと座標取得）
-  const handleSelectPrediction = async (suggestion) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleSelectPrediction = async (suggestion: any) => {
     const p = suggestion.placePrediction || {};
     const description = p.text?.text || p.mainText?.text || "";
 
@@ -70,8 +88,8 @@ export default function SearchBar({ onSearch }) {
     setPredictions([]);
     setIsOpen(false);
 
-    let lat = null;
-    let lng = null;
+    let lat: number | null = null;
+    let lng: number | null = null;
 
     // 1. fetchFields による取得を安全に試行
     try {
@@ -112,7 +130,6 @@ export default function SearchBar({ onSearch }) {
         const geocodingLib = await loadGoogleMapsLibrary("geocoding");
         const geocoder = new geocodingLib.Geocoder();
 
-        // placeId を優先してジオコーディング（一意に特定の場所を特定）
         const request = p.placeId
           ? { placeId: p.placeId }
           : {
@@ -133,7 +150,7 @@ export default function SearchBar({ onSearch }) {
       }
     }
 
-    const searchData = {
+    const searchData: SearchData = {
       description: description,
       placeId: p.placeId,
       mainText: p.mainText?.text || description,
@@ -146,10 +163,9 @@ export default function SearchBar({ onSearch }) {
   };
 
   // 検索ボタン/Enter押下時
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // 入力枠が空（またはスペースのみ）の場合に CustomModal を表示
     if (!inputValue.trim()) {
       setModalMessage("目的地を入力してください");
       setIsModalOpen(true);
@@ -206,12 +222,15 @@ export default function SearchBar({ onSearch }) {
           })}
         </ul>
       )}
+
       {/* 未入力警告用 CustomModal */}
       <CustomModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="入力エラー"
         message={modalMessage}
+        type="alert"
+        okText="OK"
       />
     </div>
   );

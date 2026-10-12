@@ -1,5 +1,21 @@
-export default function GoogleMapCard({ location }) {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+"use client";
+
+interface LocationObj {
+  lat?: number;
+  latitude?: number;
+  lng?: number;
+  longitude?: number;
+  mainText?: string;
+  name?: string;
+  description?: string;
+}
+
+interface GoogleMapCardProps {
+  location: string | LocationObj | null | undefined;
+}
+
+export default function GoogleMapCard({ location }: GoogleMapCardProps) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   let targetQuery = "";
   let displayLabel = "";
@@ -33,7 +49,6 @@ export default function GoogleMapCard({ location }) {
   )}`;
 
   return (
-    // 【修正点】カード全体に aspect-square を適用し、横長ではなく正方形のバランスに調整
     <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 aspect-square flex flex-col">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
@@ -48,7 +63,6 @@ export default function GoogleMapCard({ location }) {
       </div>
 
       {/* 地図埋め込みエリア */}
-      {/* 【修正点】固定の高さ（h-48など）の代わりに flex-1 と w-full を指定し、カード内で正方形エリアに綺麗に収まるように変更 */}
       <div className="w-full flex-1 rounded-2xl overflow-hidden shadow-inner bg-slate-100 border border-slate-200">
         <iframe
           title="Google Map"

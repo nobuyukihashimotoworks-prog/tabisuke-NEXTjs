@@ -1,6 +1,10 @@
+"use client";
+
 import { useState, useEffect } from "react";
+import { Plan } from "@/types/plan";
 import HeaderLogo from "./HeaderLogo";
 import RouteMapCard from "./RouteMapCard";
+import TodoList from "./TodoList";
 import CustomModal from "./CustomModal";
 import {
   getCoordinates,
@@ -8,23 +12,13 @@ import {
   FALLBACK_WEATHER,
 } from "../utils/weather";
 
-// =========================================================================
-// 【確認・検証用】ダミー天気データ
-// ※ 提出時は通常データを使用しますが、テスト確認用に保持しています。
-// ※ 使用する際は、下記のコメントアウトと JSX 内のテストパネルを解除してください。
-// =========================================================================
-/*
-const TEST_WEATHER_DATA = {
-  Clear: { main: "Clear", icon: "☀️", label: "晴れ", temp: 22, isFallback: false },
-  Clouds: { main: "Clouds", icon: "☁️", label: "曇り", temp: 18, isFallback: false },
-  Rain: { main: "Rain", icon: "☔", label: "雨", temp: 15, isFallback: false },
-  Drizzle: { main: "Drizzle", icon: "🌧️", label: "小雨", temp: 16, isFallback: false },
-  Thunderstorm: { main: "Thunderstorm", icon: "⚡", label: "雷雨", temp: 19, isFallback: false },
-  Snow: { main: "Snow", icon: "❄️", label: "雪", temp: 1, isFallback: false },
-  Mist: { main: "Mist", icon: "🌫️", label: "霧", temp: 12, isFallback: false },
-  Fog: { main: "Fog", icon: "🌫", label: "濃霧", temp: 10, isFallback: false },
-};
-*/
+interface PlanDetailProps {
+  plan?: Plan | null;
+  onBack: () => void;
+  onDeletePlan?: (planId: string | number) => void;
+  onUpdatePlan?: (updatedPlan: Plan) => void;
+  onEditPlan?: (plan: Plan) => void;
+}
 
 export default function PlanDetail({
   plan,
@@ -32,39 +26,42 @@ export default function PlanDetail({
   onDeletePlan,
   onUpdatePlan,
   onEditPlan,
-}) {
-  const [todos, setTodos] = useState(plan?.todos || []);
-  const [prevPlanId, setPrevPlanId] = useState(plan?.id);
+}: PlanDetailProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [todos, setTodos] = useState<any[]>(plan?.todos || []);
+  const [prevPlanId, setPrevPlanId] = useState<string | number | undefined>(plan?.id);
 
   const [todoInput, setTodoInput] = useState("");
   const [isAddingTodo, setIsAddingTodo] = useState(false);
 
   // 天気情報の状態管理
-  const [weather, setWeather] = useState(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [weather, setWeather] = useState<any>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
 
   // アラートモーダル用ステート
   const [alertMessage, setAlertMessage] = useState("");
 
-  // ★ テスト天気機能（テスト時はコメント解除）
-  // const [testWeatherKey, setTestWeatherKey] = useState(null);
-  // const displayWeather = testWeatherKey && typeof TEST_WEATHER_DATA !== "undefined" ? TEST_WEATHER_DATA[testWeatherKey] : weather;
-
   // 通常時の表示用天気データ
   const displayWeather = weather;
 
   // 削除モーダルの状態管理: "none" | "confirm" | "complete"
-  const [deleteModalState, setDeleteModalState] = useState("none");
+  const [deleteModalState, setDeleteModalState] = useState<"none" | "confirm" | "complete">("none");
 
-  // 場所名がオブジェクト（AutoComplete選択データ）か文字列か判定して安全に文字列を取り出す
-  const rawLocation = plan?.location || plan?.destination;
+  // 場所名がオブジェクトか文字列か判定して安全に文字列を取り出す
+  const rawLocation = plan?.location;
   const targetLocation =
     typeof rawLocation === "object" && rawLocation !== null
-      ? rawLocation.mainText ||
-        rawLocation.description ||
-        rawLocation.name ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (rawLocation as any).mainText ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (rawLocation as any).description ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (rawLocation as any).name ||
         ""
-      : rawLocation || "";
+      : typeof rawLocation === "string"
+      ? rawLocation
+      : "";
 
   if (plan?.id !== prevPlanId) {
     setPrevPlanId(plan?.id);
@@ -87,7 +84,6 @@ export default function PlanDetail({
       const coords = await getCoordinates(targetLocation);
 
       if (coords) {
-        // 依存配列で監視している targetDate をそのまま使用
         const weatherData = await fetchWeather(
           coords.lat,
           coords.lon,
@@ -103,6 +99,7 @@ export default function PlanDetail({
 
     loadWeather();
   }, [targetLocation, targetDate]);
+
   if (!plan && deleteModalState !== "complete") return null;
 
   // --- 日付表示テキストの取得 ---
@@ -117,7 +114,7 @@ export default function PlanDetail({
   };
 
   // --- Todoの削除 ---
-  const handleDeleteTodo = (id) => {
+  const handleDeleteTodo = (id: number | string) => {
     const nextTodos = todos.filter((t) => t.id !== id);
     setTodos(nextTodos);
     if (onUpdatePlan && plan) {
@@ -126,7 +123,7 @@ export default function PlanDetail({
   };
 
   // --- Todoの追加（30件上限チェック） ---
-  const handleAddTodo = (e) => {
+  const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!todoInput.trim()) return;
 
@@ -164,20 +161,17 @@ export default function PlanDetail({
     onBack();
   };
 
-  // --- 指摘7対応：Google Hotels連携 (場所および日程の反映) ---
+  // --- Google Hotels連携 ---
   const handleSearchHotel = () => {
     const locationName = targetLocation || "東京";
     const searchParams = new URLSearchParams();
 
-    // 検索キーワードの設定
     searchParams.append("q", locationName);
 
-    // チェックイン・チェックアウト日付の解析
     const startDateStr = plan?.dateRange?.startDate || plan?.date;
     const endDateStr = plan?.dateRange?.endDate;
 
     if (startDateStr) {
-      // YYYY-MM-DD 形式か確認・パース
       const startDate = new Date(startDateStr);
       if (!isNaN(startDate.getTime())) {
         const startDateFormatted = startDate.toISOString().split("T")[0];
@@ -192,7 +186,6 @@ export default function PlanDetail({
             );
           }
         } else {
-          // 終了日未指定時は翌日をデフォルトのチェックアウト日に設定（1泊2日）
           const nextDay = new Date(startDate);
           nextDay.setDate(nextDay.getDate() + 1);
           searchParams.append("checkout", nextDay.toISOString().split("T")[0]);
@@ -231,7 +224,7 @@ export default function PlanDetail({
       </div>
 
       {/* 2. マップエリア */}
-      <RouteMapCard destination={plan?.location || plan?.destination} />
+      <RouteMapCard destination={plan?.location} />
 
       {/* 3. やりたいこと エリア */}
       <div className="space-y-2">
@@ -239,95 +232,31 @@ export default function PlanDetail({
           やりたいこと
         </h3>
 
-        <div className="bg-white rounded-3xl p-5 shadow-sm space-y-3 min-h-[100px] flex flex-col justify-center">
-          {todos.length > 0 ? (
-            <ul className="space-y-2.5">
-              {todos.map((todo) => (
-                <li
-                  key={todo.id}
-                  className="flex items-center justify-between text-slate-700 text-sm font-medium"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <span>・</span>
-                    <span>{todo.text}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteTodo(todo.id)}
-                    className="py-1 px-3 bg-[#d0f0ec] text-slate-700 text-xs font-bold rounded-full hover:opacity-80 shadow-sm"
-                  >
-                    削除
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div>
-              {!isAddingTodo ? (
-                <div className="flex items-center justify-between px-2">
-                  <span className="text-slate-300 font-bold text-sm tracking-wide">
-                    やりたいこと、ないですか？
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingTodo(true)}
-                    className="py-1 px-3 bg-[#d0f0ec] text-slate-700 text-xs font-bold rounded-full hover:opacity-80 shadow-sm"
-                  >
-                    追加
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleAddTodo} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={todoInput}
-                    onChange={(e) => setTodoInput(e.target.value)}
-                    placeholder="例：浅草寺に行く"
-                    className="flex-1 py-1.5 px-3 rounded-full bg-slate-50 text-slate-800 text-xs border border-slate-200 focus:outline-none"
-                    autoFocus
-                  />
-                  <button
-                    type="submit"
-                    className="py-1.5 px-3 bg-[#d0f0ec] text-slate-700 text-xs font-bold rounded-full"
-                  >
-                    登録
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
+        <TodoList
+          todos={todos}
+          onDeleteTodo={handleDeleteTodo}
+          onAddClick={() => setIsAddingTodo(true)}
+        />
 
-          {todos.length > 0 && !isAddingTodo && (
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsAddingTodo(true)}
-                className="py-1 px-3 bg-[#d0f0ec] text-slate-700 text-xs font-bold rounded-full hover:opacity-80 shadow-sm"
-              >
-                + 追加
-              </button>
-            </div>
-          )}
-
-          {todos.length > 0 && isAddingTodo && (
-            <form onSubmit={handleAddTodo} className="flex gap-2 pt-2">
-              <input
-                type="text"
-                value={todoInput}
-                onChange={(e) => setTodoInput(e.target.value)}
-                placeholder="例：浅草寺に行く"
-                className="flex-1 py-1.5 px-3 rounded-full bg-slate-50 text-slate-800 text-xs border border-slate-200 focus:outline-none"
-                autoFocus
-              />
-              <button
-                type="submit"
-                className="py-1.5 px-3 bg-[#d0f0ec] text-slate-700 text-xs font-bold rounded-full"
-              >
-                登録
-              </button>
-            </form>
-          )}
-        </div>
+        {/* 追加用のフォーム部分（入力欄が開いているときだけ表示） */}
+        {isAddingTodo && (
+          <form onSubmit={handleAddTodo} className="flex gap-2 pt-2">
+            <input
+              type="text"
+              value={todoInput}
+              onChange={(e) => setTodoInput(e.target.value)}
+              placeholder="例：浅草寺に行く"
+              className="flex-1 py-1.5 px-3 rounded-full bg-slate-50 text-slate-800 text-xs border border-slate-200 focus:outline-none"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="py-1.5 px-3 bg-[#d0f0ec] text-slate-700 text-xs font-bold rounded-full"
+            >
+              登録
+            </button>
+          </form>
+        )}
       </div>
 
       {/* 4. 天気エリア */}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Plan } from "@/types/plan";
 import { useState, useEffect } from "react";
 import HeaderLogo from "../components/HeaderLogo";
 import GoogleMapCard from "../components/GoogleMapCard";
@@ -55,8 +56,7 @@ export default function Home() {
   const [currentScreen, setCurrentScreen] = useState("home");
 
   // 保存された旅程リスト
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [plans, setPlans] = useState<any[]>(() => {
+  const [plans, setPlans] = useState<Plan[]>(() => {
     if (typeof window === "undefined") return [];
     const savedPlans = localStorage.getItem(STORAGE_KEY);
     return savedPlans ? JSON.parse(savedPlans) : [];
@@ -98,14 +98,17 @@ export default function Home() {
     setCurrentScreen("detail");
   };
 
-  const handleDeletePlan = (planId: string) => {
-    setPlans((prev) => prev.filter((p) => p.id !== planId));
+  // 修正後 (string | number を受け取れるようにする)
+  const handleDeletePlan = (planId: string | number) => {
+    setPlans((prev) => prev.filter((p) => String(p.id) !== String(planId)));
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleUpdatePlan = (updatedPlan: any) => {
+  // 修正後（String()で囲んで型の違いによるバグを防ぐ）
+  const handleUpdatePlan = (updatedPlan: Plan) => {
     setPlans((prev) =>
-      prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p)),
+      prev.map((p) =>
+        String(p.id) === String(updatedPlan.id) ? updatedPlan : p,
+      ),
     );
     setSelectedPlan(updatedPlan);
   };
@@ -208,6 +211,7 @@ export default function Home() {
           <CalendarCard
             onDateSelect={handleDateSelect}
             onPlanSelect={handlePlanSelect}
+            selectedDate={selectedDate} // ★ 追加: 選択中の日付をカレンダーへ渡す
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             plans={plans as any}
           />

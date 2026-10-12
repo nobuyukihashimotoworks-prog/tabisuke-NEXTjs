@@ -1,4 +1,27 @@
-export default function SearchModal({ isOpen, location, onClose, onConfirm }) {
+"use client";
+
+interface LocationObj {
+  mainText?: string;
+  name?: string;
+  description?: string;
+  secondaryText?: string;
+  address?: string;
+}
+
+interface SearchModalProps {
+  isOpen: boolean;
+  location: string | LocationObj | null;
+  onClose: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onConfirm: (location: any) => void;
+}
+
+export default function SearchModal({
+  isOpen,
+  location,
+  onClose,
+  onConfirm,
+}: SearchModalProps) {
   // モーダルが非表示、または場所データが存在しない場合は何も描画しない
   if (!isOpen || !location) return null;
 
@@ -7,17 +30,19 @@ export default function SearchModal({ isOpen, location, onClose, onConfirm }) {
 
   // スポット名（メイン表示）
   const displayName = isObject
-    ? location.mainText ||
-      location.name ||
-      location.description ||
+    ? (location as LocationObj).mainText ||
+      (location as LocationObj).name ||
+      (location as LocationObj).description ||
       "選択したスポット"
     : location;
 
   // 補足住所（サブ表示：存在する場合のみ）
   const displayAddress = isObject
-    ? location.secondaryText ||
-      location.address ||
-      (location.description !== displayName ? location.description : null)
+    ? (location as LocationObj).secondaryText ||
+      (location as LocationObj).address ||
+      ((location as LocationObj).description !== displayName
+        ? (location as LocationObj).description
+        : null)
     : null;
 
   return (

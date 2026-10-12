@@ -1,22 +1,45 @@
+"use client";
+
 import { useState } from "react";
+import { Plan } from "@/types/plan";
 import HeaderLogo from "./HeaderLogo";
 import CalendarCard from "./CalendarCard";
 import RouteMapCard from "./RouteMapCard";
 import TodoList from "./TodoList";
 import CustomModal from "./CustomModal";
 
+// Todo項目の型定義
+interface TodoItem {
+  id: number;
+  text: string;
+}
+
+// 期間（日付範囲）の型定義
+interface DateRangeType {
+  startDate: string | null;
+  endDate: string | null;
+}
+
+interface PlanRegisterProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  location: any;
+  onBack: () => void;
+  onSavePlan: (newPlan: Plan) => void;
+  plans?: Plan[];
+}
+
 export default function PlanRegister({
   location,
   onBack,
   onSavePlan,
   plans = [],
-}) {
+}: PlanRegisterProps) {
   const [todoInput, setTodoInput] = useState("");
-  const [todoList, setTodoList] = useState([]);
+  const [todoList, setTodoList] = useState<TodoItem[]>([]);
   const [planTitle, setPlanTitle] = useState("");
 
   // 1. 日付管理
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<DateRangeType>({
     startDate: null,
     endDate: null,
   });
@@ -34,13 +57,13 @@ export default function PlanRegister({
   // 表示用・保存用の共通日付フォーマット
   const formattedDateText = dateRange.endDate
     ? `${dateRange.startDate} 〜 ${dateRange.endDate}`
-    : dateRange.startDate;
+    : dateRange.startDate || "";
 
-  // 30文字を超えているかどうかの判定フラグ (設計書更新後の仕様: 30文字制限)
+  // 30文字を超えているかどうかの判定フラグ
   const isTitleTooLong = planTitle.length > 30;
 
   // 指定された日付（YYYY-MM-DD）が既存の旅程と重複しているかチェック
-  const isDateBooked = (dateStr) => {
+  const isDateBooked = (dateStr: string) => {
     return plans.some((plan) => {
       const start = plan.dateRange?.startDate;
       if (!start) return false;
@@ -50,7 +73,7 @@ export default function PlanRegister({
   };
 
   // カレンダーの日付選択
-  const handleDateSelect = (selectedDateStr) => {
+  const handleDateSelect = (selectedDateStr: string) => {
     // A. タップした単一の要素がすでに予約済みかチェック
     if (isDateBooked(selectedDateStr)) {
       setAlertMessage("ダブルブッキングはできません！！");
@@ -64,7 +87,10 @@ export default function PlanRegister({
           const start = plan.dateRange?.startDate;
           if (!start) return false;
           const end = plan.dateRange?.endDate || start;
-          return !(selectedDateStr < start || dateRange.startDate > end);
+          return !(
+            selectedDateStr < start ||
+            (dateRange.startDate && dateRange.startDate > end)
+          );
         });
 
         if (hasOverlap) {
@@ -86,8 +112,8 @@ export default function PlanRegister({
     }
   };
 
-  // やりたいこと（ToDo）の追加（指摘4対応: 30件上限チェック）
-  const handleAddTodo = (e) => {
+  // やりたいこと（ToDo）の追加
+  const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!todoInput.trim()) return;
 
@@ -99,7 +125,7 @@ export default function PlanRegister({
       return;
     }
 
-    const newTodo = {
+    const newTodo: TodoItem = {
       id: Date.now(),
       text: todoInput.trim(),
     };
@@ -108,7 +134,7 @@ export default function PlanRegister({
   };
 
   // やりたいことの削除
-  const handleDeleteTodo = (id) => {
+  const handleDeleteTodo = (id: number) => {
     setTodoList((prev) => prev.filter((todo) => todo.id !== id));
   };
 
@@ -136,12 +162,15 @@ export default function PlanRegister({
 
   // モーダル内で「確定」を押した時の最終登録処理
   const handleFinalConfirm = () => {
-    const newPlan = {
+    const newPlan: Plan = {
       id: Date.now(),
       location: location,
       title: planTitle.trim(),
       date: formattedDateText,
-      dateRange: dateRange,
+      dateRange: {
+        startDate: dateRange.startDate || null, // ★ undefined にならないよう || null に変更
+        endDate: dateRange.endDate || null, // ★ 同上
+      },
       todos: todoList,
     };
 
@@ -200,6 +229,7 @@ export default function PlanRegister({
         <CalendarCard
           onDateSelect={handleDateSelect}
           dateRange={dateRange}
+          selectedDate={dateRange.startDate || undefined}
           plans={plans}
         />
       </div>

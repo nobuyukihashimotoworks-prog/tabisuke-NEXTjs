@@ -1,4 +1,20 @@
-export default function ItineraryList({ items, onDeleteItem }) {
+"use client";
+
+interface ItineraryItem {
+  id: string | number;
+  location: string;
+  createdAt?: string;
+}
+
+interface ItineraryListProps {
+  items: ItineraryItem[];
+  onDeleteItem: (id: string | number) => void;
+}
+
+export default function ItineraryList({
+  items,
+  onDeleteItem,
+}: ItineraryListProps) {
   if (items.length === 0) {
     return (
       <div className="bg-white/60 backdrop-blur-md rounded-3xl p-6 shadow-md border border-white/60 text-center space-y-2">
@@ -38,13 +54,16 @@ export default function ItineraryList({ items, onDeleteItem }) {
                 <p className="text-xs font-bold text-slate-800 truncate">
                   {item.location}
                 </p>
-                <p className="text-[10px] text-slate-400">
-                  {item.createdAt} 追加
-                </p>
+                {item.createdAt && (
+                  <p className="text-[10px] text-slate-400">
+                    {item.createdAt} 追加
+                  </p>
+                )}
               </div>
             </div>
 
             <button
+              type="button"
               onClick={() => onDeleteItem(item.id)}
               className="flex-shrink-0 text-slate-300 hover:text-rose-500 text-sm p-1 transition-colors"
               title="削除"
