@@ -1,7 +1,7 @@
 "use client";
 
 import { Plan } from "@/types/plan";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import HeaderLogo from "../components/HeaderLogo";
 import GoogleMapCard from "../components/GoogleMapCard";
 import SearchBar from "../components/SearchBar";
@@ -11,6 +11,8 @@ import PlanDetail from "../components/PlanDetail";
 import PlanEdit from "../components/PlanEdit";
 import CustomModal from "../components/CustomModal";
 import dynamic from "next/dynamic";
+import { supabase } from "@/utils/supabase";
+
 // SSRを無効化してクライアント側でのみFullCalendarを安全に読み込む
 const CalendarCard = dynamic(() => import("../components/CalendarCard"), {
   ssr: false,
@@ -29,8 +31,6 @@ const MESSAGES = [
   "とりあえず行って考えるもアリ。",
 ];
 
-const STORAGE_KEY = "tabisuke_plans";
-
 export default function Home() {
   // (useEffectを使ってマウント後にランダム決定する)
   const [message, setMessage] = useState("");
@@ -48,6 +48,8 @@ export default function Home() {
   const [pendingLocation, setPendingLocation] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
   // 登録完了モーダルの状態管理
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
@@ -55,19 +57,43 @@ export default function Home() {
   // 画面状態 ('home' | 'register' | 'detail' | 'edit')
   const [currentScreen, setCurrentScreen] = useState("home");
 
-  // 保存された旅程リスト
-  const [plans, setPlans] = useState<Plan[]>(() => {
-    if (typeof window === "undefined") return [];
-    const savedPlans = localStorage.getItem(STORAGE_KEY);
-    return savedPlans ? JSON.parse(savedPlans) : [];
-  });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  // 保存された旅程リスト（最初は空配列からスタート）
+  const [plans, setPlans] = useState<Plan[]>([]);
 
-  // plans が変更されるたびに localStorage へ自動保存
+  // ★ Supabaseからデータを取得する処理を再利用可能な関数として定義
+  const fetchPlans = useCallback(async () => {
+    const { data, error } = await supabase.from("itineraries").select("*");
+
+    if (error) {
+      console.error("データ取得エラー:", error);
+      return;
+    }
+
+    if (data) {
+      // Supabaseのカラム構成をアプリ側の Plan 型に変換してセットする
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formattedPlans: Plan[] = data.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        date: item.end_date
+          ? `${item.start_date} 〜 ${item.end_date}`
+          : item.start_date,
+        dateRange: {
+          startDate: item.start_date,
+          endDate: item.end_date,
+        },
+        location: item.destination,
+        todos: item.days || [],
+      }));
+
+      setPlans(formattedPlans);
+    }
+  }, []);
+
+  // 起動時にSupabaseからデータを取得する
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
-  }, [plans]);
+    fetchPlans();
+  }, [fetchPlans]);
 
   // アプリ起動時に現在地（GPS）を1度だけ自動取得する処理
   useEffect(() => {
@@ -98,12 +124,10 @@ export default function Home() {
     setCurrentScreen("detail");
   };
 
-  // 修正後 (string | number を受け取れるようにする)
   const handleDeletePlan = (planId: string | number) => {
     setPlans((prev) => prev.filter((p) => String(p.id) !== String(planId)));
   };
 
-  // 修正後（String()で囲んで型の違いによるバグを防ぐ）
   const handleUpdatePlan = (updatedPlan: Plan) => {
     setPlans((prev) =>
       prev.map((p) =>
@@ -133,17 +157,20 @@ export default function Home() {
     setIsModalOpen(false);
   };
 
-  // 旅程保存時の処理
+  // 旅程保存時の処理（PlanRegisterから呼ばれる）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSavePlan = (newPlan: any) => {
+    // 状態のステート更新（必要に応じて）
     setPlans((prev) => [...prev, newPlan]);
+    // ★ 登録完了モーダルを開く
     setIsSaveModalOpen(true);
   };
 
   // 登録完了モーダルの「OK」を押した時の処理
   const handleSaveModalClose = () => {
-    setIsSaveModalOpen(false);
-    setCurrentScreen("home");
+    setIsSaveModalOpen(false); // モーダルを閉じる
+    setCurrentScreen("home"); // ホーム画面に戻る
+    fetchPlans(); // 最新データを再取得してカレンダーに反映
   };
 
   return (
@@ -152,7 +179,10 @@ export default function Home() {
       {currentScreen === "register" && (
         <PlanRegister
           location={searchLocation}
-          onBack={() => setCurrentScreen("home")}
+          onBack={() => {
+            setCurrentScreen("home");
+            fetchPlans(); // ★ 登録画面から戻る時に最新データを再取得する
+          }}
           onSavePlan={handleSavePlan}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           plans={plans as any}
@@ -211,7 +241,7 @@ export default function Home() {
           <CalendarCard
             onDateSelect={handleDateSelect}
             onPlanSelect={handlePlanSelect}
-            selectedDate={selectedDate} // ★ 追加: 選択中の日付をカレンダーへ渡す
+            selectedDate={selectedDate}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             plans={plans as any}
           />
@@ -225,7 +255,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* 登録完了用の統一モーダル（ご提示いただいた CustomModal の仕様に完全適合） */}
+      {/* 登録完了用の統一モーダル */}
       <CustomModal
         isOpen={isSaveModalOpen}
         message="登録が完了しました"

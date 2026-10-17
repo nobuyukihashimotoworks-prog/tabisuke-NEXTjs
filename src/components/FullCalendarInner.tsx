@@ -102,7 +102,7 @@ export default function FullCalendarInner({
 
         if (isHoliday) {
           return (
-            <div className="text-[9px] font-bold text-red-600 truncate px-0.5 leading-none">
+            <div className="text-[9px] font-bold text-red-600 whitespace-normal break-all leading-tight px-0.5">
               {eventInfo.event.title}
             </div>
           );
@@ -110,7 +110,7 @@ export default function FullCalendarInner({
 
         if (isSeasonal) {
           return (
-            <div className="text-[9px] font-medium text-slate-600 truncate px-0.5 leading-none">
+            <div className="text-[9px] font-medium text-slate-600 whitespace-normal break-all leading-tight px-0.5">
               {eventInfo.event.title}
             </div>
           );

@@ -11,6 +11,7 @@ import {
   fetchWeather,
   FALLBACK_WEATHER,
 } from "../utils/weather";
+import { supabase } from "@/utils/supabase"; // 追加
 
 interface PlanDetailProps {
   plan?: Plan | null;
@@ -29,7 +30,9 @@ export default function PlanDetail({
 }: PlanDetailProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [todos, setTodos] = useState<any[]>(plan?.todos || []);
-  const [prevPlanId, setPrevPlanId] = useState<string | number | undefined>(plan?.id);
+  const [prevPlanId, setPrevPlanId] = useState<string | number | undefined>(
+    plan?.id,
+  );
 
   const [todoInput, setTodoInput] = useState("");
   const [isAddingTodo, setIsAddingTodo] = useState(false);
@@ -46,22 +49,24 @@ export default function PlanDetail({
   const displayWeather = weather;
 
   // 削除モーダルの状態管理: "none" | "confirm" | "complete"
-  const [deleteModalState, setDeleteModalState] = useState<"none" | "confirm" | "complete">("none");
+  const [deleteModalState, setDeleteModalState] = useState<
+    "none" | "confirm" | "complete"
+  >("none");
 
   // 場所名がオブジェクトか文字列か判定して安全に文字列を取り出す
   const rawLocation = plan?.location;
   const targetLocation =
     typeof rawLocation === "object" && rawLocation !== null
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (rawLocation as any).mainText ||
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (rawLocation as any).mainText ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (rawLocation as any).description ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (rawLocation as any).name ||
         ""
       : typeof rawLocation === "string"
-      ? rawLocation
-      : "";
+        ? rawLocation
+        : "";
 
   if (plan?.id !== prevPlanId) {
     setPrevPlanId(plan?.id);
@@ -147,64 +152,72 @@ export default function PlanDetail({
     }
   };
 
-  // --- 削除確認画面で「はい」を押した時 ---
-  const handleConfirmDelete = () => {
-    if (onDeletePlan && plan) {
-      onDeletePlan(plan.id);
-    }
-    setDeleteModalState("complete");
-  };
-
   // --- 削除完了画面で「OK」を押した時 ---
   const handleCompleteOk = () => {
     setDeleteModalState("none");
     onBack();
   };
+  // --- 削除確認画面で「はい」を押した時 ---
+  const handleConfirmDelete = async () => {
+    if (!plan) return;
 
-  // --- Google Hotels連携 ---
+    try {
+      // 1. Supabaseのitinerariesテーブルからレコードを削除
+      const { error } = await supabase
+        .from("itineraries")
+        .delete()
+        .eq("id", plan.id); // 該当するIDのデータを削除
+
+      if (error) {
+        throw error;
+      }
+
+      // 2. アプリ側の状態（親コンポーネント）を更新
+      if (onDeletePlan) {
+        onDeletePlan(plan.id);
+      }
+
+      setDeleteModalState("complete");
+    } catch (error) {
+      console.error("削除エラー:", error);
+      setAlertMessage("データベースからの削除に失敗しました。");
+    }
+  };
+
+  // --- Google Hotels 目的地のみ連携 ---
   const handleSearchHotel = () => {
+    console.log("DEBUG - handleSearchHotel clicked. Current plan:", plan);
+
     const locationName = targetLocation || "東京";
     const searchParams = new URLSearchParams();
 
+    // 目的地のみをクエリとして設定
     searchParams.append("q", locationName);
 
-    const startDateStr = plan?.dateRange?.startDate || plan?.date;
-    const endDateStr = plan?.dateRange?.endDate;
-
-    if (startDateStr) {
-      const startDate = new Date(startDateStr);
-      if (!isNaN(startDate.getTime())) {
-        const startDateFormatted = startDate.toISOString().split("T")[0];
-        searchParams.append("checkin", startDateFormatted);
-
-        if (endDateStr) {
-          const endDate = new Date(endDateStr);
-          if (!isNaN(endDate.getTime())) {
-            searchParams.append(
-              "checkout",
-              endDate.toISOString().split("T")[0],
-            );
-          }
-        } else {
-          const nextDay = new Date(startDate);
-          nextDay.setDate(nextDay.getDate() + 1);
-          searchParams.append("checkout", nextDay.toISOString().split("T")[0]);
-        }
-      }
-    }
-
-    const searchUrl = `https://www.google.com/travel/hotels?${searchParams.toString()}`;
+    const searchUrl = `https://www.google.com/travel/search?${searchParams.toString()}`;
+    console.log("DEBUG - Generated Google Travel URL:", searchUrl);
     window.open(searchUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
     <div className="w-full max-w-md bg-app-bg text-app-main p-6 space-y-6 mx-auto relative">
-      {/* 1. タイトル & 日程変更ボタン */}
+      {/* 1. ヘッダーロゴ */}
       <HeaderLogo small={true} />
 
-      <div className="relative flex items-center justify-center pt-2">
-        <div className="text-center">
-          <h2 className="text-xl font-bold text-slate-800 tracking-wide">
+      {/* 2. 日程変更ボタン（上部・右寄せ） & タイトルエリア */}
+      <div className="space-y-2 pt-2">
+        <div className="flex justify-end px-2">
+          <button
+            type="button"
+            onClick={() => onEditPlan && plan && onEditPlan(plan)}
+            className="py-1.5 px-3 bg-[#d0f0ec] text-slate-700 font-bold text-xs rounded-full shadow-sm hover:opacity-80"
+          >
+            日程変更
+          </button>
+        </div>
+
+        <div className="text-center px-4 space-y-0.5">
+          <h2 className="text-xl font-bold text-slate-800 tracking-wide break-all leading-snug">
             {plan?.title || "旅の計画"}
           </h2>
           {getDateText() && (
@@ -213,20 +226,12 @@ export default function PlanDetail({
             </p>
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={() => onEditPlan && plan && onEditPlan(plan)}
-          className="absolute right-0 top-0 py-1.5 px-3 bg-[#d0f0ec] text-slate-700 font-bold text-xs rounded-full shadow-sm hover:opacity-80"
-        >
-          日程変更
-        </button>
       </div>
 
-      {/* 2. マップエリア */}
+      {/* 3. マップエリア */}
       <RouteMapCard destination={plan?.location} />
 
-      {/* 3. やりたいこと エリア */}
+      {/* 4. やりたいこと エリア */}
       <div className="space-y-2">
         <h3 className="text-center font-bold text-slate-700 text-lg">
           やりたいこと
@@ -259,7 +264,7 @@ export default function PlanDetail({
         )}
       </div>
 
-      {/* 4. 天気エリア */}
+      {/* 5. 天気エリア */}
       <div className="space-y-2">
         <h3 className="text-center font-bold text-slate-700 text-sm">
           {getDateText() ? `${getDateText()} の` : ""}
@@ -283,7 +288,17 @@ export default function PlanDetail({
                 天気を読み込み中...
               </p>
             ) : displayWeather ? (
-              displayWeather.isFallback ? (
+              displayWeather.isOutOfRange ? (
+                <div className="text-center space-y-1">
+                  <p className="text-2xl">📅</p>
+                  <p className="text-xs font-bold text-slate-500">
+                    予報期間外（5日以内のみ表示）です
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    ※直前になると天気予報が表示されます
+                  </p>
+                </div>
+              ) : displayWeather.isFallback ? (
                 <div className="text-center space-y-1">
                   <p className="text-2xl">🗓️</p>
                   <p className="text-xs font-bold text-slate-500">
@@ -313,19 +328,32 @@ export default function PlanDetail({
         </div>
       </div>
 
-      {/* 5. アクションボタン群 */}
-      <div className="pt-2 space-y-4">
-        <div className="flex justify-center">
+      {/* 6. アクションボタン群 */}
+      <div className="pt-2 space-y-3">
+        <div className="flex flex-col items-center gap-1.5">
           <button
             type="button"
             onClick={handleSearchHotel}
             className="py-3 px-8 bg-[#d0f0ec] text-slate-700 font-bold text-sm rounded-full shadow-md hover:opacity-90 active:scale-95 transition-all"
           >
-            宿泊先を探す
+            目的地周辺の宿泊先を探す
           </button>
+
+          {/* 追加：対象の旅程（日付）の表示 */}
+          {getDateText() && (
+            <p className="text-xs font-bold text-slate-500">
+              今回の旅程：{getDateText()}
+            </p>
+          )}
+
+          <p className="text-[11px] font-bold text-slate-500 text-center">
+            ※引き継げるのは目的地だけです！
+            <br />
+            旅行の日程は引き継げないのでGoogle Travel上で設定してね🙇‍♂️
+          </p>
         </div>
 
-        <div className="flex justify-between items-center px-2">
+        <div className="flex justify-between items-center px-2 pt-1">
           <button
             type="button"
             onClick={onBack}
@@ -342,8 +370,7 @@ export default function PlanDetail({
           </button>
         </div>
       </div>
-
-      {/* 6. 警告・アラート用統一モーダル */}
+      {/* 7. 警告・アラート用統一モーダル */}
       <CustomModal
         isOpen={Boolean(alertMessage)}
         message={alertMessage}
@@ -352,7 +379,7 @@ export default function PlanDetail({
         onClose={() => setAlertMessage("")}
       />
 
-      {/* 7. 削除モーダル群 */}
+      {/* 8. 削除モーダル群 */}
       {deleteModalState === "confirm" && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center z-50 p-6">
           <div className="bg-[#E0F8F6] rounded-3xl p-8 w-full max-w-xs shadow-xl text-center space-y-3 border border-white">

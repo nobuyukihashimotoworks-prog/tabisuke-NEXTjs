@@ -7,6 +7,7 @@ import CalendarCard from "./CalendarCard";
 import RouteMapCard from "./RouteMapCard";
 import TodoList from "./TodoList";
 import CustomModal from "./CustomModal";
+import { supabase } from "@/utils/supabase";
 
 // Todo項目の型定義
 interface TodoItem {
@@ -153,7 +154,7 @@ export default function PlanRegister({
     }
 
     if (trimmedTitle.length > 30) {
-      setAlertMessage("タイトルは30文字以内で入力してください。");
+      setAlertMessage("タイトルが長すぎます（30文字以内）");
       return;
     }
 
@@ -161,21 +162,57 @@ export default function PlanRegister({
   };
 
   // モーダル内で「確定」を押した時の最終登録処理
-  const handleFinalConfirm = () => {
-    const newPlan: Plan = {
-      id: Date.now(),
-      location: location,
-      title: planTitle.trim(),
-      date: formattedDateText,
-      dateRange: {
-        startDate: dateRange.startDate || null, // ★ undefined にならないよう || null に変更
-        endDate: dateRange.endDate || null, // ★ 同上
-      },
-      todos: todoList,
-    };
+  const handleFinalConfirm = async () => {
+    try {
+      // 1. Supabaseのitinerariesテーブルに保存するデータ構造を作成
+      const newRecord = {
+        title: planTitle.trim(),
+        start_date: dateRange.startDate,
+        end_date: dateRange.endDate || dateRange.startDate,
+        destination: locationName,
+        days: todoList,
+      };
 
-    setIsConfirmOpen(false);
-    onSavePlan(newPlan);
+      // 2. Supabaseへインサート（挿入）
+      const { data, error } = await supabase
+        .from("itineraries")
+        .insert([newRecord])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      console.log("Supabaseに保存成功:", data);
+
+      // 3. 確認モーダルを閉じる
+      setIsConfirmOpen(false);
+
+      // ★ 4. 親コンポーネントに保存成功を通知する（これにより親側の登録完了モーダルが開く）
+      if (onSavePlan && data && data.length > 0) {
+        const item = data[0];
+        const formattedNewPlan: Plan = {
+          id: item.id,
+          title: item.title,
+          date: item.end_date
+            ? `${item.start_date} 〜 ${item.end_date}`
+            : item.start_date,
+          dateRange: {
+            startDate: item.start_date,
+            endDate: item.end_date,
+          },
+          location: item.destination,
+          todos: item.days || [],
+        };
+        onSavePlan(formattedNewPlan);
+      } else {
+        onBack();
+      }
+    } catch (error) {
+      console.error("保存エラー:", error);
+      setAlertMessage("データベースへの保存に失敗しました。");
+      setIsConfirmOpen(false);
+    }
   };
 
   return (
@@ -243,8 +280,7 @@ export default function PlanRegister({
             type="text"
             value={planTitle}
             onChange={(e) => setPlanTitle(e.target.value)}
-            placeholder="タイトルを入れてください（例：浅草観光）"
-            maxLength={30}
+            placeholder="タイトルを入れてください（30文字以内）"
             className={`w-full py-2.5 px-4 rounded-full bg-white text-slate-800 text-sm shadow-sm border focus:outline-none text-center truncate transition-colors ${
               isTitleTooLong
                 ? "border-red-500 text-red-600 focus:ring-1 focus:ring-red-500"
@@ -256,15 +292,11 @@ export default function PlanRegister({
             <span className="text-red-500">
               {isTitleTooLong && "※ タイトルは30文字以内で入力してください"}
             </span>
-            <span
-              className={isTitleTooLong ? "text-red-500" : "text-slate-400"}
-            >
-              {planTitle.length}/30
-            </span>
           </div>
         </div>
 
-        <div className="pt-2 space-y-2">
+        {/* ボタンを囲む親divに flex flex-col items-start を指定 */}
+        <div className="pt-2 space-y-2 flex flex-col items-start">
           <button
             type="button"
             onClick={handleOpenConfirm}
@@ -275,7 +307,7 @@ export default function PlanRegister({
           <button
             type="button"
             onClick={onBack}
-            className="py-1.5 px-4 bg-slate-200 text-slate-600 font-bold text-xs rounded-full hover:bg-slate-300"
+            className="px-6 py-2 bg-slate-200 text-slate-600 font-bold rounded-full shadow-md hover:bg-slate-300 transition text-sm mt-2"
           >
             戻る
           </button>

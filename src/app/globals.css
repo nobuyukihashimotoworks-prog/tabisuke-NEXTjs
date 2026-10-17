@@ -396,7 +396,6 @@ body {
     transform: scale(1.05);
   }
 }
-
 /* =========================================================
    3. FullCalendar & イベントスタイル調整
    ========================================================= */
@@ -419,12 +418,15 @@ body {
   white-space: normal !important;
   word-break: break-all !important;
   line-height: 1.1 !important;
+  overflow: visible !important;
+  height: auto !important;
 }
 
 .fc-event.holiday-event-label .fc-event-title {
   color: #dc2626 !important;
   white-space: normal !important;
-  overflow: hidden !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
 .fc-event.seasonal-event-label {
@@ -439,12 +441,15 @@ body {
   white-space: normal !important;
   word-break: break-all !important;
   line-height: 1.15 !important;
+  overflow: visible !important;
+  height: auto !important;
 }
 
 .fc-event.seasonal-event-label .fc-event-title {
   color: #6b21a8 !important;
   white-space: normal !important;
-  overflow: hidden !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
 /* ── 祝日 & 日曜日セルの背景色（赤み系で統一） ── */

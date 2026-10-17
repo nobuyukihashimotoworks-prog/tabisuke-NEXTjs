@@ -5,6 +5,7 @@ import { Plan } from "@/types/plan";
 import HeaderLogo from "./HeaderLogo";
 import CalendarCard from "./CalendarCard";
 import CustomModal from "./CustomModal";
+import { supabase } from "@/utils/supabase"; // 追加
 
 interface DateRangeType {
   startDate: string | null;
@@ -139,7 +140,7 @@ export default function PlanEdit({
 
     // 3. タイトル文字数制限チェック（30文字以内）
     if (trimmedTitle.length > 30) {
-      setAlertMessage("タイトルは30文字以内で入力してください。");
+      setAlertMessage("タイトルが長すぎます（30文字以内）");
       setModalState("alert");
       return;
     }
@@ -148,29 +149,50 @@ export default function PlanEdit({
   };
 
   // 確認モーダルで「はい」を押したときのデータ更新処理
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    // async を追加
     if (!plan) return;
 
     const updatedTitle = title.trim() !== "" ? title.trim() : plan.title;
     const finalEndDate = dateRange.endDate || dateRange.startDate;
 
-    const updatedPlan: Plan = {
-      ...plan,
-      title: updatedTitle,
-      date: getFormattedDateText(),
-      dateRange: {
-        startDate: dateRange.startDate,
-        endDate: finalEndDate,
-      },
-    };
+    try {
+      // 1. Supabaseのitinerariesテーブルを更新
+      const { error } = await supabase
+        .from("itineraries")
+        .update({
+          title: updatedTitle,
+          start_date: dateRange.startDate,
+          end_date: finalEndDate,
+        })
+        .eq("id", plan.id); // 編集対象のIDを指定
 
-    if (onUpdatePlan) {
-      onUpdatePlan(updatedPlan);
+      if (error) {
+        throw error;
+      }
+
+      // 2. アプリ側の状態（親コンポーネント）を更新
+      const updatedPlan: Plan = {
+        ...plan,
+        title: updatedTitle,
+        date: getFormattedDateText(),
+        dateRange: {
+          startDate: dateRange.startDate,
+          endDate: finalEndDate,
+        },
+      };
+
+      if (onUpdatePlan) {
+        onUpdatePlan(updatedPlan);
+      }
+
+      setModalState("complete");
+    } catch (error) {
+      console.error("更新エラー:", error);
+      setAlertMessage("データベースの更新に失敗しました。");
+      setModalState("alert");
     }
-
-    setModalState("complete");
   };
-
   // 完了モーダルで「OK」を押したとき（Homeへ戻る）
   const handleCompleteOK = () => {
     setModalState("none");
@@ -208,8 +230,7 @@ export default function PlanEdit({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="新しいタイトルを入れてください"
-            maxLength={30}
+            placeholder="新しいタイトルを入れてください（30文字以内）"
             className={`w-full py-3 px-6 bg-white rounded-full text-center text-sm shadow-md focus:outline-none transition-colors border ${
               isTitleTooLong
                 ? "border-red-500 text-red-600 focus:ring-1 focus:ring-red-500"
@@ -219,15 +240,6 @@ export default function PlanEdit({
           <div className="flex justify-between items-center px-4 text-xs font-bold">
             <span className="text-red-500">
               {isTitleTooLong && "※ タイトルは30文字以内で入力してください"}
-            </span>
-            <span
-              className={
-                isTitleTooLong
-                  ? "text-red-500 ml-auto"
-                  : "text-slate-400 ml-auto"
-              }
-            >
-              {title.length}/30
             </span>
           </div>
         </div>

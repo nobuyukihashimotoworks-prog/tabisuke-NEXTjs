@@ -3,8 +3,8 @@
 import { Plan } from "@/types/plan";
 import React from "react";
 import dynamic from "next/dynamic";
-import holidayJp from "@holiday-jp/holiday_jp"; // ★ 元に戻す
-import { SEASONAL_EVENTS } from "../utils/seasonalEvents"; // ★ 元に戻す
+import holidayJp from "@holiday-jp/holiday_jp";
+import { SEASONAL_EVENTS } from "../utils/seasonalEvents";
 
 const FullCalendarInner = dynamic(() => import("./FullCalendarInner"), {
   ssr: false,
@@ -14,7 +14,7 @@ interface CalendarCardProps {
   onDateSelect?: (dateStr: string) => void;
   onPlanSelect?: (plan: Plan) => void;
   dateRange?: { startDate: string | null; endDate: string | null };
-  selectedDate?: string; // ★ 追加: 現在選択中の日付
+  selectedDate?: string;
   plans?: Plan[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   events?: any[];
@@ -24,7 +24,7 @@ export default function CalendarCard({
   onDateSelect,
   onPlanSelect,
   dateRange = { startDate: null, endDate: null },
-  selectedDate, // ★ 追加
+  selectedDate,
   plans = [],
   events = [],
 }: CalendarCardProps) {
@@ -72,10 +72,10 @@ export default function CalendarCard({
     };
   });
 
-  // ★ holiday-jp や季節イベントの生成ロジックを復活（日付の数式を修正）
+  // 1. 祝日データの取得（今年から来年末まで）
   const currentYear = new Date().getFullYear();
   const holidays = holidayJp.between(
-    new Date(`${currentYear - 1}-01-01`),
+    new Date(`${currentYear}-01-01`),
     new Date(`${currentYear + 2}-12-31`),
   );
 
@@ -94,19 +94,29 @@ export default function CalendarCard({
     };
   });
 
-  const seasonalEventsList = Object.entries(SEASONAL_EVENTS).map(
-    ([dateStr, title]) => ({
-      title,
-      start: dateStr,
-      allDay: true,
-      display: "auto",
-      classNames: ["seasonal-event-label"],
-      backgroundColor: "#f3e8ff",
-      borderColor: "#e9d5ff",
-      editable: false,
-      extendedProps: { isSeasonal: true },
-    }),
-  );
+  // 2. 季節イベントデータ（SEASONAL_EVENTS 配列）を今年・来年の日付形式に変換
+  const seasonalEventsList = [];
+  const yearsToGenerate = [currentYear, currentYear + 1];
+
+  for (const year of yearsToGenerate) {
+    for (const item of SEASONAL_EVENTS) {
+      const m = String(item.month).padStart(2, "0");
+      const d = String(item.day).padStart(2, "0");
+      const dateStr = `${year}-${m}-${d}`;
+
+      seasonalEventsList.push({
+        title: item.title,
+        start: dateStr,
+        allDay: true,
+        display: "auto",
+        classNames: ["seasonal-event-label"],
+        backgroundColor: "#f3e8ff",
+        borderColor: "#e9d5ff",
+        editable: false,
+        extendedProps: { isSeasonal: true },
+      });
+    }
+  }
 
   // すべてのイベントを結合
   const allEvents = [
@@ -117,7 +127,7 @@ export default function CalendarCard({
   ];
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 calendar-card-container flex flex-col">
+    <div className="bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 calendar-card-container flex flex-col">
       <div className="flex-1 w-full h-full [&_.fc]:h-full [&_.fc-view-harness]:h-[calc(100%-40px)]">
         <FullCalendarInner
           allEvents={allEvents}
