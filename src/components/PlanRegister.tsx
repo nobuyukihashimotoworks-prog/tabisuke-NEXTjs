@@ -121,7 +121,7 @@ export default function PlanRegister({
     // 30件上限チェック
     if (todoList.length >= 30) {
       setAlertMessage(
-        "登録できるのは30項目までです。詰め込み過ぎると楽しめませんよ？",
+        "登録できるのは30項目までです。<br />詰め込み過ぎると楽しめませんよ？",
       );
       return;
     }
