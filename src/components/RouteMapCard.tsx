@@ -232,7 +232,7 @@ export default function RouteMapCard({ destination }: RouteMapCardProps) {
   };
 
   return (
-    <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 space-y-3">
+    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 w-full h-[420px] md:h-[460px] flex flex-col">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-700 text-xs flex items-center gap-1">
           📍 ルート案内
@@ -274,7 +274,8 @@ export default function RouteMapCard({ destination }: RouteMapCardProps) {
         </div>
       </div>
 
-      <div className="relative w-full h-52 rounded-2xl overflow-hidden bg-slate-100">
+      {/* 地図エリア：flex-1 でカード内の残り高さを綺麗に占有 */}
+      <div className="relative w-full flex-1 rounded-2xl overflow-hidden bg-slate-100">
         <div ref={mapRef} className="w-full h-full" />
 
         {loading && (

@@ -21,11 +21,9 @@ export default function GoogleMapCard({ location }: GoogleMapCardProps) {
   let displayLabel = "";
 
   if (typeof location === "string" && location.trim() !== "") {
-    // 1. 文字列で地名が渡された場合（例: "博多駅"）
     targetQuery = location.trim();
     displayLabel = location.trim();
   } else if (location && typeof location === "object") {
-    // 2. 座標オブジェクト { lat, lng } または Places API オブジェクトの場合
     const lat = location.lat ?? location.latitude;
     const lng = location.lng ?? location.longitude;
 
@@ -33,23 +31,20 @@ export default function GoogleMapCard({ location }: GoogleMapCardProps) {
       targetQuery = `${lat},${lng}`;
       displayLabel = "現在地";
     } else {
-      // mainText や description などのテキスト抽出
       targetQuery =
         location.mainText || location.name || location.description || "";
       displayLabel = location.mainText || location.name || "検索地点";
     }
   }
 
-  // 3. 初期状態（searchLocation が null の場合）のピン立てデフォルト位置設定
   const finalQuery = targetQuery.trim() !== "" ? targetQuery : "東京駅";
 
-  // Google Maps Embed API（place モードは q に渡した特定の場所・座標に確実にピンを立てます）
   const mapSrc = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodeURIComponent(
     finalQuery,
   )}`;
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 aspect-square flex flex-col">
+    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 aspect-square md:h-[460px] flex flex-col">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
           <span>🗺️</span>{" "}
