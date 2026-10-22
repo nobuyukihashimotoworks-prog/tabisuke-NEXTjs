@@ -127,7 +127,7 @@ export default function CalendarCard({
   ];
 
   return (
-    <div className="bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 calendar-card-container flex flex-col">
+    <div className="bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 calendar-card-container flex flex-col w-full h-[420px] md:h-[460px]">
       <div className="flex-1 w-full h-full [&_.fc]:h-full [&_.fc-view-harness]:h-[calc(100%-40px)]">
         <FullCalendarInner
           allEvents={allEvents}
