@@ -400,6 +400,17 @@ body {
    3. FullCalendar & イベントスタイル調整
    ========================================================= */
 
+/* スマホ画面（768px以下）のときだけ、カレンダー内のイベント文字をコンパクトにして枠の膨らみを防ぐ */
+@media (max-width: 768px) {
+  .fc-event {
+    font-size: 0.65rem !important; /* 文字サイズを調整 */
+    padding: 1px 2px !important; /* 余白を詰める */
+  }
+  .fc-event-title {
+    font-size: 0.65rem !important;
+  }
+}
+
 /* 祝日イベント全体の文字色を強制的に赤にする */
 .fc-event.holiday-event-label,
 .fc-event.holiday-event-label .fc-event-main,
