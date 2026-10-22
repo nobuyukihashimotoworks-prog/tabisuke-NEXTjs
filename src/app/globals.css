@@ -520,23 +520,28 @@ body {
 
 .calendar-card-container .fc-scrollgrid {
   height: 100% !important;
+  table-layout: fixed !important; /* ← テーブル全体の幅・高さを固定化する重要プロパティ */
 }
 
 .calendar-card-container .fc-daygrid-body,
 .calendar-card-container .fc-daygrid-body table,
 .calendar-card-container .fc-scrollgrid-sync-table {
   height: 100% !important;
+  table-layout: fixed !important;
 }
 
-/* ── 追加・強化：週の行とセルの高さを均等に固定し、イベントによる縦伸びを防ぐ ── */
+/* ── 週の行とセルの高さを完全に均一に強制固定し、縦伸びを絶対にさせない ── */
 .calendar-card-container .fc-daygrid-week {
   height: calc(100% / 6) !important;
   min-height: 0 !important;
   max-height: calc(100% / 6) !important;
 }
 
-.calendar-card-container .fc-daygrid-day {
+.calendar-card-container td.fc-daygrid-day {
   height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
 }
 
 .calendar-card-container .fc-daygrid-day-frame {
@@ -544,10 +549,14 @@ body {
   min-height: 0 !important;
   max-height: 100% !important;
   overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .calendar-card-container .fc-daygrid-day-events {
-  max-height: calc(100% - 20px) !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
   overflow: hidden !important;
 }
 
