@@ -528,16 +528,32 @@ body {
   height: 100% !important;
 }
 
+/* ── 追加・強化：週の行とセルの高さを均等に固定し、イベントによる縦伸びを防ぐ ── */
+.calendar-card-container .fc-daygrid-week {
+  height: calc(100% / 6) !important;
+  min-height: 0 !important;
+  max-height: calc(100% / 6) !important;
+}
+
+.calendar-card-container .fc-daygrid-day {
+  height: 100% !important;
+}
+
 .calendar-card-container .fc-daygrid-day-frame {
+  height: 100% !important;
   min-height: 0 !important;
   max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+.calendar-card-container .fc-daygrid-day-events {
+  max-height: calc(100% - 20px) !important;
   overflow: hidden !important;
 }
 
 .calendar-card-container .fc-scroller {
   overflow: hidden !important;
 }
-
 /* =========================================================
    選択された期間・日付セルのスタイリング（一続きのブロック表現）
    ========================================================= */
