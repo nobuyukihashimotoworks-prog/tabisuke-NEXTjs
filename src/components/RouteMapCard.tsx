@@ -232,7 +232,8 @@ export default function RouteMapCard({ destination }: RouteMapCardProps) {
   };
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 w-full h-[420px] md:h-[460px] flex flex-col">
+    // カレンダーカード（md:w-[540px] md:h-[540px]）に合わせてPC版のサイズを完全正方形に統一
+    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 w-full h-[460px] md:w-[540px] md:h-[540px] flex flex-col mx-auto">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-700 text-xs flex items-center gap-1">
           📍 ルート案内

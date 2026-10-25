@@ -5,7 +5,7 @@ import { Plan } from "@/types/plan";
 import HeaderLogo from "./HeaderLogo";
 import CalendarCard from "./CalendarCard";
 import CustomModal from "./CustomModal";
-import { supabase } from "@/utils/supabase"; // 追加
+import { supabase } from "@/utils/supabase";
 
 interface DateRangeType {
   startDate: string | null;
@@ -150,7 +150,6 @@ export default function PlanEdit({
 
   // 確認モーダルで「はい」を押したときのデータ更新処理
   const handleConfirm = async () => {
-    // async を追加
     if (!plan) return;
 
     const updatedTitle = title.trim() !== "" ? title.trim() : plan.title;
@@ -165,7 +164,7 @@ export default function PlanEdit({
           start_date: dateRange.startDate,
           end_date: finalEndDate,
         })
-        .eq("id", plan.id); // 編集対象のIDを指定
+        .eq("id", plan.id);
 
       if (error) {
         throw error;
@@ -193,6 +192,7 @@ export default function PlanEdit({
       setModalState("alert");
     }
   };
+
   // 完了モーダルで「OK」を押したとき（Homeへ戻る）
   const handleCompleteOK = () => {
     setModalState("none");
@@ -200,28 +200,33 @@ export default function PlanEdit({
   };
 
   return (
-    <div className="w-full max-w-md min-h-screen flex flex-col bg-app-bg p-6 space-y-6 mx-auto relative">
-      {/* 1. ヘッダーロゴ */}
-      <HeaderLogo small={true} />
+    // 他の画面と完全に共通のコンテナ幅（max-w-xl）と中央揃え（mx-auto）を適用
+    <div className="w-full max-w-xl min-h-screen flex flex-col bg-app-bg p-6 space-y-6 mx-auto relative items-center">
+      {/* 1. ヘッダーロゴ（大きなサイズで他の画面と統一） */}
+      <HeaderLogo />
 
       {/* 2. 現状のタイトル & 案内 */}
-      <div className="text-center pt-2">
-        <h2 className="text-2xl font-bold text-app-main truncate px-4">
+      <div className="text-center pt-2 w-full space-y-2">
+        <h2 className="text-xl md:text-2xl font-bold text-app-main truncate px-4">
           {plan?.title || "現状のタイトル"}
         </h2>
-        <p className="text-lg font-bold text-app-main mt-4">いつ行きますか？</p>
+        <p className="text-lg md:text-xl font-bold text-slate-700 mt-2">
+          いつ行きますか？
+        </p>
       </div>
 
-      {/* 3. カレンダー */}
-      <CalendarCard
-        onDateSelect={handleDateSelect}
-        dateRange={dateRange}
-        plans={plans}
-      />
+      {/* 3. カレンダー（PC版で540pxのカードサイズに綺麗に中央配置） */}
+      <div className="w-full flex justify-center">
+        <CalendarCard
+          onDateSelect={handleDateSelect}
+          dateRange={dateRange}
+          plans={plans}
+        />
+      </div>
 
       {/* 4. フォーム & ボタンエリア */}
-      <div className="flex flex-col items-center space-y-4 pt-2">
-        <p className="text-lg font-bold text-app-main">
+      <div className="flex flex-col items-center space-y-4 pt-2 w-full">
+        <p className="text-lg md:text-xl font-bold text-slate-700">
           予定を立て直しますか？
         </p>
 
@@ -248,19 +253,21 @@ export default function PlanEdit({
         <button
           type="button"
           onClick={handleOpenConfirm}
-          className="w-full py-4 bg-app-accent text-app-main text-lg font-bold rounded-full shadow-md hover:opacity-90 transition active:scale-95"
+          className="w-full py-4 bg-app-accent text-app-main text-base md:text-lg font-bold rounded-full shadow-md hover:opacity-90 transition active:scale-95"
         >
           旅程を変更する
         </button>
 
-        {/* 戻るボタン */}
-        <button
-          type="button"
-          onClick={onBack}
-          className="self-start px-6 py-2 bg-slate-200 text-slate-600 font-bold rounded-full shadow-md hover:bg-slate-300 transition text-sm mt-2"
-        >
-          戻る
-        </button>
+        {/* 戻るボタン（他の画面と揃えて完全に左寄せに配置） */}
+        <div className="w-full flex justify-start mt-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-6 py-2 bg-slate-200 text-slate-600 font-bold rounded-full shadow-md hover:bg-slate-300 transition text-sm"
+          >
+            戻る
+          </button>
+        </div>
       </div>
 
       {/* 5. 警告・アラート用モーダル */}

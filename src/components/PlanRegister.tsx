@@ -121,7 +121,7 @@ export default function PlanRegister({
     // 30件上限チェック
     if (todoList.length >= 30) {
       setAlertMessage(
-        "登録できるのは30項目までです。<br />詰め込み過ぎると楽しめませんよ？",
+        "登録できるのは30項目までです。詰め込み過ぎると楽しめませんよ？",
       );
       return;
     }
@@ -216,23 +216,26 @@ export default function PlanRegister({
   };
 
   return (
-    <div className="w-full max-w-md bg-app-bg text-app-main p-6 space-y-6">
+    // Home画面と完全に共通のコンテナ幅（max-w-xl）と中央揃え（mx-auto）を適用
+    <div className="w-full max-w-xl min-h-screen bg-app-bg text-app-main p-6 space-y-6 mx-auto flex flex-col items-center">
       {/* 1. 上部小さめタイトルロゴ */}
       <HeaderLogo small={true} />
 
       {/* 2. 見出し（目的地） */}
-      <div className="text-center space-y-1">
-        <p className="text-sm font-bold text-slate-600">
+      <div className="text-center space-y-1 w-full">
+        <p className="text-sm md:text-base font-bold text-slate-600">
           📍 {locationName} へのルート候補です
         </p>
       </div>
 
-      {/* 3. マップ表示エリア */}
-      <RouteMapCard destination={location} />
+      {/* 3. マップ表示エリア（幅を親に合わせるためw-full） */}
+      <div className="w-full flex justify-center">
+        <RouteMapCard destination={location} />
+      </div>
 
       {/* 4. やりたいことは何ですか？ (ToDoリスト) */}
-      <div className="space-y-3">
-        <h3 className="text-center font-bold text-slate-700">
+      <div className="space-y-3 w-full">
+        <h3 className="text-center font-bold text-slate-700 text-lg md:text-xl">
           やりたいことは何ですか？
         </h3>
         <form onSubmit={handleAddTodo} className="flex gap-2">
@@ -256,24 +259,30 @@ export default function PlanRegister({
       </div>
 
       {/* 5. いつ行きますか？ (FullCalendarによる日付選択) */}
-      <div className="space-y-3 text-center">
-        <h3 className="font-bold text-slate-700">いつ行きますか？</h3>
+      <div className="space-y-3 text-center w-full flex flex-col items-center">
+        <h3 className="font-bold text-slate-700 text-lg md:text-xl">
+          いつ行きますか？
+        </h3>
         {dateRange.startDate && (
-          <p className="text-sm font-extrabold text-app-accent tracking-wide bg-app-accent/10 py-1.5 px-3 rounded-full inline-block">
+          <p className="text-sm md:text-base font-extrabold text-app-accent tracking-wide bg-app-accent/10 py-1.5 px-3 rounded-full inline-block">
             📅 {formattedDateText}
           </p>
         )}
-        <CalendarCard
-          onDateSelect={handleDateSelect}
-          dateRange={dateRange}
-          selectedDate={dateRange.startDate || undefined}
-          plans={plans}
-        />
+        <div className="w-full flex justify-center">
+          <CalendarCard
+            onDateSelect={handleDateSelect}
+            dateRange={dateRange}
+            selectedDate={dateRange.startDate || undefined}
+            plans={plans}
+          />
+        </div>
       </div>
 
       {/* 6. 予定を立てますか？ (タイトル入力 ＆ 保存) */}
-      <div className="space-y-3 text-center pt-2">
-        <h3 className="font-bold text-slate-700">予定を立てますか？</h3>
+      <div className="space-y-3 text-center pt-2 w-full">
+        <h3 className="font-bold text-slate-700 text-lg md:text-xl">
+          予定を立てますか？
+        </h3>
 
         <div className="space-y-1">
           <input
@@ -295,8 +304,8 @@ export default function PlanRegister({
           </div>
         </div>
 
-        {/* ボタンを囲む親divに flex flex-col items-start を指定 */}
-        <div className="pt-2 space-y-2 flex flex-col items-start">
+        {/* ボタン周り */}
+        <div className="pt-2 space-y-2 w-full flex flex-col items-center">
           <button
             type="button"
             onClick={handleOpenConfirm}
@@ -304,13 +313,17 @@ export default function PlanRegister({
           >
             旅程を登録する
           </button>
-          <button
-            type="button"
-            onClick={onBack}
-            className="px-6 py-2 bg-slate-200 text-slate-600 font-bold rounded-full shadow-md hover:bg-slate-300 transition text-sm mt-2"
-          >
-            戻る
-          </button>
+
+          {/* w-full と flex justify-start を使って「戻る」ボタンだけを左寄せにする */}
+          <div className="w-full flex justify-start mt-2">
+            <button
+              type="button"
+              onClick={onBack}
+              className="px-6 py-2 bg-slate-200 text-slate-600 font-bold rounded-full shadow-md hover:bg-slate-300 transition text-sm"
+            >
+              戻る
+            </button>
+          </div>
         </div>
       </div>
 

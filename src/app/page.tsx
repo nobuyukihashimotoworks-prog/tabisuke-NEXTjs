@@ -213,12 +213,13 @@ export default function Home() {
 
       {/* 4. HOME画面 */}
       {currentScreen === "home" && (
-        <div className="w-full max-w-md min-h-screen flex flex-col bg-app-bg p-6 space-y-6">
+        <div className="w-full max-w-xl min-h-screen flex flex-col bg-app-bg p-6 space-y-6 mx-auto">
           <HeaderLogo />
 
           <div className="text-center pt-2 min-h-[40px] flex items-center justify-center">
             {message && (
-              <h2 className="text-2xl font-bold tracking-wide text-app-main animate-fade-in">
+              // PC版でメッセージが小さく見えないよう md:text-3xl を追加
+              <h2 className="text-2xl md:text-3xl font-bold tracking-wide text-app-main animate-fade-in">
                 {message}
               </h2>
             )}
@@ -228,11 +229,12 @@ export default function Home() {
           <GoogleMapCard location={searchLocation} />
 
           <div className="text-center pt-2">
-            <h3 className="text-lg font-bold text-app-main tracking-wide">
+            {/* PC版でセクション見出しが小さく見えないよう md:text-xl を追加 */}
+            <h3 className="text-xl md:text-2xl font-bold text-app-main tracking-wide">
               旅行スケジュールの確認
             </h3>
             {selectedDate && (
-              <p className="text-xs text-zinc-500 mt-1">
+              <p className="text-xs md:text-sm text-zinc-500 mt-1">
                 選択中: {selectedDate}
               </p>
             )}

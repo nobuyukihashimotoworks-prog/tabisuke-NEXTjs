@@ -396,21 +396,59 @@ body {
     transform: scale(1.05);
   }
 }
+
 /* =========================================================
    3. FullCalendar & イベントスタイル調整
    ========================================================= */
 
-/* スマホ画面（768px以下）のときだけ、カレンダー内のイベント文字をコンパクトにして枠の膨らみを防ぐ */
-@media (max-width: 768px) {
-  .fc-event {
-    font-size: 0.65rem !important; /* 文字サイズを調整 */
-    padding: 1px 2px !important; /* 余白を詰める */
-  }
-  .fc-event-title {
-    font-size: 0.65rem !important;
-  }
+/* 日付の数字を小さくし、縦崩れを防ぐ */
+.fc .fc-daygrid-day-number {
+  font-size: 0.7rem !important;
+  padding: 1px 3px !important;
+  line-height: 1.1 !important;
+  float: none !important;
+  display: inline-block;
+  font-weight: 600;
 }
 
+/* 日付セル上部のレイアウト調整 */
+.fc .fc-daygrid-day-top {
+  flex-direction: row !important;
+  justify-content: space-between;
+}
+
+/* スマホ画面（768px以下）のときだけ、カレンダー内のイベント文字をコンパクトに調整 */
+@media (max-width: 768px) {
+  .fc-event {
+    font-size: 0.6rem !important;
+    padding: 0.5px 1px !important;
+  }
+  .fc-event-title {
+    font-size: 0.6rem !important;
+  }
+}
+/* =========================================================
+   【レスポンシブ切り替え】
+   - PC（768px超）：固定高を維持し、スクロールさせない
+   - スマホ（767px以下）：スクロールを許可しつつ、縦長化を防いでコンパクトに保つ
+   ========================================================= */
+@media (max-width: 767px) {
+  .calendar-card-container {
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* FullCalendar内の各行（tr）やセル（td）が縦に間延びしすぎるのを防ぐ */
+  .calendar-card-container .fc-daygrid-body tr {
+    height: auto !important;
+  }
+
+  .calendar-card-container .fc-daygrid-day-frame {
+    min-height: 48px !important; /* 各セルの最低限の高さを確保しつつ、縦長化を抑制 */
+    max-height: 68px !important; /* 縦方向の最大高さを制限して間延びを防ぐ */
+    overflow: hidden !important;
+  }
+}
 /* 祝日イベント全体の文字色を強制的に赤にする */
 .fc-event.holiday-event-label,
 .fc-event.holiday-event-label .fc-event-main,
@@ -421,14 +459,14 @@ body {
 }
 
 .fc-event.holiday-event-label {
-  font-size: 0.62rem !important;
+  font-size: 0.4rem !important;
   letter-spacing: -0.03em !important;
   font-weight: 700 !important;
-  padding: 0 1px !important;
+  padding: 0 !important;
   box-shadow: none !important;
   white-space: normal !important;
   word-break: break-all !important;
-  line-height: 1.1 !important;
+  line-height: 1 !important;
   overflow: visible !important;
   height: auto !important;
 }
@@ -444,14 +482,14 @@ body {
   background-color: #f3e8ff !important;
   border: 1px solid #e9d5ff !important;
   color: #6b21a8 !important;
-  font-size: 0.62rem !important;
+  font-size: 0.58rem !important;
   letter-spacing: -0.03em !important;
-  border-radius: 4px;
-  padding: 1px 3px !important;
+  border-radius: 3px;
+  padding: 0.5px 2px !important;
   box-shadow: none !important;
   white-space: normal !important;
   word-break: break-all !important;
-  line-height: 1.15 !important;
+  line-height: 1.1 !important;
   overflow: visible !important;
   height: auto !important;
 }
@@ -463,9 +501,11 @@ body {
   text-overflow: clip !important;
 }
 
-/* ── 祝日 & 日曜日セルの背景色（赤み系で統一） ── */
+/* ── 祝日 & 日曜日セルの背景色（内部フレームも指定して確実に適用） ── */
 .fc td.fc-day-holiday,
-.fc td.fc-day-sunday {
+.fc td.fc-day-sunday,
+.fc td.fc-day-holiday .fc-daygrid-day-frame,
+.fc td.fc-day-sunday .fc-daygrid-day-frame {
   background-color: #fee2e2 !important;
 }
 .fc .fc-day-holiday .fc-daygrid-day-number,
@@ -474,8 +514,9 @@ body {
   font-weight: bold;
 }
 
-/* ── 土曜日セルの背景色 ── */
-.fc td.fc-day-saturday {
+/* ── 土曜日セルの背景色（内部フレームも指定して確実に適用） ── */
+.fc td.fc-day-saturday,
+.fc td.fc-day-saturday .fc-daygrid-day-frame {
   background-color: #e0f2fe !important;
 }
 .fc td.fc-day-saturday .fc-daygrid-day-number {
@@ -483,7 +524,8 @@ body {
   font-weight: bold;
 }
 
-.fc .fc-day-today {
+.fc .fc-day-today,
+.fc .fc-day-today .fc-daygrid-day-frame {
   background-color: #fef3c7 !important;
 }
 
@@ -491,83 +533,25 @@ body {
   background-color: #f59e0b !important;
   color: #ffffff !important;
   border-radius: 9999px;
-  padding: 2px 6px !important;
+  padding: 1px 5px !important;
   font-weight: bold;
 }
 
-.calendar-card-container {
-  aspect-ratio: 1 / 1.15;
-  min-height: 390px;
-  overflow: hidden !important;
+/* 該当月以外（先月・来月）の日付セルをグレーアウト */
+.fc .fc-daygrid-day.fc-day-other,
+.fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-frame {
+  background-color: #f1f5f9 !important; /* 薄いグレーの背景色 */
 }
 
-.calendar-card-container .fc {
-  height: 100% !important;
-  max-height: 100% !important;
-  font-size: 0.78rem;
+/* 該当月以外の日付の数字や文字を薄くする */
+.fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+  color: #94a3b8 !important; /* 控えめなグレーの文字色 */
+  opacity: 0.7;
 }
 
-.calendar-card-container .fc-view-harness {
-  height: calc(100% - 32px) !important;
-  max-height: calc(100% - 32px) !important;
-}
-
-.calendar-card-container .fc-dayGridMonth-view {
-  height: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-.calendar-card-container .fc-scrollgrid {
-  height: 100% !important;
-  table-layout: fixed !important; /* ← テーブル全体の幅・高さを固定化する重要プロパティ */
-}
-
-.calendar-card-container .fc-daygrid-body,
-.calendar-card-container .fc-daygrid-body table,
-.calendar-card-container .fc-scrollgrid-sync-table {
-  height: 100% !important;
-  table-layout: fixed !important;
-}
-
-/* ── 週の行とセルの高さを完全に均一に強制固定し、縦伸びを絶対にさせない ── */
-.calendar-card-container .fc-daygrid-week {
-  height: calc(100% / 6) !important;
-  min-height: 0 !important;
-  max-height: calc(100% / 6) !important;
-}
-
-.calendar-card-container td.fc-daygrid-day {
-  height: 100% !important;
-  min-height: 0 !important;
-  max-height: 100% !important;
-  overflow: hidden !important;
-}
-
-.calendar-card-container .fc-daygrid-day-frame {
-  height: 100% !important;
-  min-height: 0 !important;
-  max-height: 100% !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-}
-
-.calendar-card-container .fc-daygrid-day-events {
-  flex: 1 !important;
-  min-height: 0 !important;
-  max-height: 100% !important;
-  overflow: hidden !important;
-}
-
-.calendar-card-container .fc-scroller {
-  overflow: hidden !important;
-}
 /* =========================================================
-   選択された期間・日付セルのスタイリング（一続きのブロック表現）
+   4. 選択された期間・日付セルのスタイリング
    ========================================================= */
-
-/* 共通の背景色・内部レイヤー指定 */
 .fc td.fc-daygrid-day.selected-single-cell,
 .fc td.fc-daygrid-day.selected-start-cell,
 .fc td.fc-daygrid-day.selected-middle-cell,
@@ -591,7 +575,6 @@ body {
   background-color: #38bdf8 !important;
 }
 
-/* 共通の数字スタイル */
 .fc td.fc-daygrid-day.selected-single-cell .fc-daygrid-day-number,
 .fc td.fc-daygrid-day.selected-start-cell .fc-daygrid-day-number,
 .fc td.fc-daygrid-day.selected-middle-cell .fc-daygrid-day-number,
@@ -600,14 +583,12 @@ body {
   color: #ffffff !important;
 }
 
-/* 単日選択：四方すべてを囲む */
 .fc td.fc-daygrid-day.selected-single-cell {
   border: 3px solid #0369a1 !important;
   position: relative !important;
   z-index: 10 !important;
 }
 
-/* 開始日：上・左・下を囲み、右側を開ける */
 .fc td.fc-daygrid-day.selected-start-cell {
   border-top: 3px solid #0369a1 !important;
   border-left: 3px solid #0369a1 !important;
@@ -617,7 +598,6 @@ body {
   z-index: 10 !important;
 }
 
-/* 中間日：上・下を囲み、左右を開ける */
 .fc td.fc-daygrid-day.selected-middle-cell {
   border-top: 3px solid #0369a1 !important;
   border-bottom: 3px solid #0369a1 !important;
@@ -627,7 +607,6 @@ body {
   z-index: 10 !important;
 }
 
-/* 終了日：上・右・下を囲み、左側を開ける */
 .fc td.fc-daygrid-day.selected-end-cell {
   border-top: 3px solid #0369a1 !important;
   border-right: 3px solid #0369a1 !important;

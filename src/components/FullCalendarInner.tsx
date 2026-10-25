@@ -40,9 +40,10 @@ export default function FullCalendarInner({
         right: "next",
       }}
       locale="ja"
-      height="100%"
-      contentHeight="100%"
-      fixedWeekCount={false}
+      height={500}
+      dayMaxEvents={2} // または 3（1日あたりに表示する最大イベント数）
+      fixedWeekCount={true}
+      expandRows={true}
       dateClick={handleDateClick}
       eventClick={handleEventClick}
       events={allEvents}

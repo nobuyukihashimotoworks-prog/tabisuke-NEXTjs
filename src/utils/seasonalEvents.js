@@ -8,12 +8,10 @@ export const SEASONAL_EVENTS = [
   // 2月
   { month: 2, day: 2, title: "👶 おんぶの日" },
   { month: 2, day: 3, title: "👹 節分" },
-  { month: 2, day: 14, title: "🍫 バレンタイン" },
   { month: 2, day: 14, title: "🩲 ふんどしの日" },
   { month: 2, day: 22, title: "🐱 猫の日" },
 
   // 3月
-  { month: 3, day: 1, title: "☕ 3Dラテアートの日" },
   { month: 3, day: 3, title: "🎎 ひな祭り" },
   { month: 3, day: 9, title: "🌾 雑穀の日" },
   { month: 3, day: 14, title: "🍬 ホワイトデー" },

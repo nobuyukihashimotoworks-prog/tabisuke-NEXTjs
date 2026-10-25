@@ -11,7 +11,7 @@ import {
   fetchWeather,
   FALLBACK_WEATHER,
 } from "../utils/weather";
-import { supabase } from "@/utils/supabase"; // 追加
+import { supabase } from "@/utils/supabase";
 
 interface PlanDetailProps {
   plan?: Plan | null;
@@ -166,7 +166,7 @@ export default function PlanDetail({
       const { error } = await supabase
         .from("itineraries")
         .delete()
-        .eq("id", plan.id); // 該当するIDのデータを削除
+        .eq("id", plan.id);
 
       if (error) {
         throw error;
@@ -186,26 +186,23 @@ export default function PlanDetail({
 
   // --- Google Hotels 目的地のみ連携 ---
   const handleSearchHotel = () => {
-    console.log("DEBUG - handleSearchHotel clicked. Current plan:", plan);
-
     const locationName = targetLocation || "東京";
     const searchParams = new URLSearchParams();
 
-    // 目的地のみをクエリとして設定
     searchParams.append("q", locationName);
 
     const searchUrl = `https://www.google.com/travel/search?${searchParams.toString()}`;
-    console.log("DEBUG - Generated Google Travel URL:", searchUrl);
     window.open(searchUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
-    <div className="w-full max-w-md bg-app-bg text-app-main p-6 space-y-6 mx-auto relative">
-      {/* 1. ヘッダーロゴ */}
-      <HeaderLogo small={true} />
+    // Home画面や登録画面と完全に共通のコンテナ幅（max-w-xl）と中央揃え（mx-auto）を適用
+    <div className="w-full max-w-xl min-h-screen bg-app-bg text-app-main p-6 space-y-6 mx-auto relative flex flex-col items-center">
+      {/* 1. ヘッダーロゴ（大きなサイズに変更） */}
+      <HeaderLogo />
 
-      {/* 2. 日程変更ボタン（上部・右寄せ） & タイトルエリア */}
-      <div className="space-y-2 pt-2">
+      {/* 2. 日程変更ボタン（上部・右寄せ） & タイトルエリア（ロゴとのすき間をすっきり調整） */}
+      <div className="space-y-1 w-full pt-1">
         <div className="flex justify-end px-2">
           <button
             type="button"
@@ -217,23 +214,25 @@ export default function PlanDetail({
         </div>
 
         <div className="text-center px-4 space-y-0.5">
-          <h2 className="text-xl font-bold text-slate-800 tracking-wide break-all leading-snug">
+          <h2 className="text-xl md:text-2xl font-bold text-slate-800 tracking-wide break-all leading-snug">
             {plan?.title || "旅の計画"}
           </h2>
           {getDateText() && (
-            <p className="text-xs font-bold text-slate-500 mt-0.5">
+            <p className="text-xs md:text-sm font-bold text-slate-500 mt-0.5">
               {getDateText()}
             </p>
           )}
         </div>
       </div>
 
-      {/* 3. マップエリア */}
-      <RouteMapCard destination={plan?.location} />
+      {/* 3. マップエリア（正方形サイズに合わせるためw-full flex justify-center） */}
+      <div className="w-full flex justify-center">
+        <RouteMapCard destination={plan?.location} />
+      </div>
 
       {/* 4. やりたいこと エリア */}
-      <div className="space-y-2">
-        <h3 className="text-center font-bold text-slate-700 text-lg">
+      <div className="space-y-2 w-full">
+        <h3 className="text-center font-bold text-slate-700 text-lg md:text-xl">
           やりたいこと
         </h3>
 
@@ -251,12 +250,12 @@ export default function PlanDetail({
               value={todoInput}
               onChange={(e) => setTodoInput(e.target.value)}
               placeholder="例：浅草寺に行く"
-              className="flex-1 py-1.5 px-3 rounded-full bg-slate-50 text-slate-800 text-xs border border-slate-200 focus:outline-none"
+              className="flex-1 py-2.5 px-4 rounded-full bg-slate-50 text-slate-800 text-sm border border-slate-200 focus:outline-none"
               autoFocus
             />
             <button
               type="submit"
-              className="py-1.5 px-3 bg-[#d0f0ec] text-slate-700 text-xs font-bold rounded-full"
+              className="py-2.5 px-5 bg-[#d0f0ec] text-slate-700 text-sm font-bold rounded-full"
             >
               登録
             </button>
@@ -265,8 +264,8 @@ export default function PlanDetail({
       </div>
 
       {/* 5. 天気エリア */}
-      <div className="space-y-2">
-        <h3 className="text-center font-bold text-slate-700 text-sm">
+      <div className="space-y-2 w-full">
+        <h3 className="text-center font-bold text-slate-700 text-sm md:text-base">
           {getDateText() ? `${getDateText()} の` : ""}
           {targetLocation || "目的地"} の天気
         </h3>
@@ -276,7 +275,7 @@ export default function PlanDetail({
             displayWeather?.main
               ? `weather-bg-${displayWeather.main}`
               : "bg-white"
-          } rounded-3xl p-5 shadow-sm text-center flex items-center justify-center min-h-[90px] relative overflow-hidden`}
+          } rounded-3xl p-5 shadow-sm text-center flex items-center justify-center min-h-[90px] relative overflow-hidden w-full`}
         >
           {displayWeather?.main && (
             <div className={`weather-overlay ${displayWeather.main}`} />
@@ -329,47 +328,49 @@ export default function PlanDetail({
       </div>
 
       {/* 6. アクションボタン群 */}
-      <div className="pt-2 space-y-3">
-        <div className="flex flex-col items-center gap-1.5">
+      <div className="pt-2 space-y-3 w-full">
+        <div className="flex flex-col items-center gap-1.5 w-full">
           <button
             type="button"
             onClick={handleSearchHotel}
-            className="py-3 px-8 bg-[#d0f0ec] text-slate-700 font-bold text-sm rounded-full shadow-md hover:opacity-90 active:scale-95 transition-all"
+            className="w-full py-3 bg-[#d0f0ec] text-slate-700 font-bold text-base rounded-full shadow-md hover:opacity-90 active:scale-95 transition-all text-center"
           >
             目的地周辺の宿泊先を探す
           </button>
 
-          {/* 追加：対象の旅程（日付）の表示 */}
+          {/* 対象の旅程（日付）の表示 */}
           {getDateText() && (
-            <p className="text-xs font-bold text-slate-500">
+            <p className="text-xs md:text-sm font-bold text-slate-500 mt-1">
               今回の旅程：{getDateText()}
             </p>
           )}
 
-          <p className="text-[11px] font-bold text-slate-500 text-center">
+          <p className="text-[11px] md:text-xs font-bold text-slate-500 text-center mt-1">
             ※引き継げるのは目的地だけです！
             <br />
             旅行の日程は引き継げないのでGoogle Travel上で設定してね🙇‍♂️
           </p>
         </div>
 
-        <div className="flex justify-between items-center px-2 pt-1">
+        {/* 戻る（左寄せ）＆ 削除（右寄せ） */}
+        <div className="flex justify-between items-center px-2 pt-2 w-full">
           <button
             type="button"
             onClick={onBack}
-            className="py-1.5 px-4 bg-[#d0f0ec] text-slate-700 font-bold text-xs rounded-full hover:opacity-80 shadow-sm"
+            className="py-2 px-6 bg-slate-200 text-slate-600 font-bold text-sm rounded-full hover:bg-slate-300 transition shadow-sm"
           >
             戻る
           </button>
           <button
             type="button"
             onClick={() => setDeleteModalState("confirm")}
-            className="py-1.5 px-4 bg-[#d0f0ec] text-slate-700 font-bold text-xs rounded-full hover:opacity-80 shadow-sm"
+            className="py-2 px-6 bg-rose-100 text-rose-600 font-bold text-sm rounded-full hover:bg-rose-200 transition shadow-sm"
           >
             削除
           </button>
         </div>
       </div>
+
       {/* 7. 警告・アラート用統一モーダル */}
       <CustomModal
         isOpen={Boolean(alertMessage)}

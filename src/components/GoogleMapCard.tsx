@@ -44,7 +44,8 @@ export default function GoogleMapCard({ location }: GoogleMapCardProps) {
   )}`;
 
   return (
-    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 aspect-square md:h-[460px] flex flex-col">
+    // カレンダー側（540px）に合わせて PC版の横幅も md:w-[540px] に修正
+    <div className="bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 space-y-3 h-[540px] md:w-[540px] flex flex-col">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
           <span>🗺️</span>{" "}

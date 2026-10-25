@@ -127,8 +127,9 @@ export default function CalendarCard({
   ];
 
   return (
-    <div className="bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 calendar-card-container flex flex-col w-full h-[460px]">
-      <div className="flex-1 w-full h-full [&_.fc]:h-full [&_.fc-view-harness]:h-[calc(100%-40px)]">
+    // PC版のみ widthを540px、heightを540pxに固定して正方形にする
+    <div className="bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-lg border border-white/60 calendar-card-container flex flex-col w-full h-[540px] md:w-[540px]">
+      <div className="w-full h-full">
         <FullCalendarInner
           allEvents={allEvents}
           dateRange={dateRange}
