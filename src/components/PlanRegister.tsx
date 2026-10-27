@@ -272,7 +272,6 @@ export default function PlanRegister({
           <CalendarCard
             onDateSelect={handleDateSelect}
             dateRange={dateRange}
-            selectedDate={dateRange.startDate || undefined}
             plans={plans}
           />
         </div>
