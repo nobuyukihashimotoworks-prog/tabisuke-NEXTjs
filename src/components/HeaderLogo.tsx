@@ -10,7 +10,7 @@ export default function HeaderLogo({ small = false }: HeaderLogoProps) {
           small ? "text-5xl" : "text-6xl md:text-7xl"
         }`}
       >
-        "Tabisuke"
+        &quot;Tabisuke&quot;
       </h1>
     </div>
   );

@@ -14,7 +14,6 @@ interface CalendarCardProps {
   onDateSelect?: (dateStr: string) => void;
   onPlanSelect?: (plan: Plan) => void;
   dateRange?: { startDate: string | null; endDate: string | null };
-  selectedDate?: string;
   plans?: Plan[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   events?: any[];
@@ -24,7 +23,6 @@ export default function CalendarCard({
   onDateSelect,
   onPlanSelect,
   dateRange = { startDate: null, endDate: null },
-  selectedDate,
   plans = [],
   events = [],
 }: CalendarCardProps) {

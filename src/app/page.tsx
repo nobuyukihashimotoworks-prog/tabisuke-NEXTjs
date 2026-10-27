@@ -32,14 +32,11 @@ const MESSAGES = [
 ];
 
 export default function Home() {
-  // (useEffectを使ってマウント後にランダム決定する)
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
+  // 最初にランダムなメッセージをセットする
+  const [message] = useState(() => {
     const randomIndex = Math.floor(Math.random() * MESSAGES.length);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMessage(MESSAGES[randomIndex]);
-  }, []);
+    return MESSAGES[randomIndex];
+  });
 
   // 地点情報
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -243,7 +240,6 @@ export default function Home() {
           <CalendarCard
             onDateSelect={handleDateSelect}
             onPlanSelect={handlePlanSelect}
-            selectedDate={selectedDate}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             plans={plans as any}
           />
