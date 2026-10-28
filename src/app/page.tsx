@@ -32,11 +32,13 @@ const MESSAGES = [
 ];
 
 export default function Home() {
-  // 最初にランダムなメッセージをセットする
-  const [message] = useState(() => {
+  // 最初に空文字で初期化し、マウント後にブラウザ側でランダムなメッセージをセットする
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
     const randomIndex = Math.floor(Math.random() * MESSAGES.length);
-    return MESSAGES[randomIndex];
-  });
+    setMessage(MESSAGES[randomIndex]);
+  }, []);
 
   // 地点情報
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
