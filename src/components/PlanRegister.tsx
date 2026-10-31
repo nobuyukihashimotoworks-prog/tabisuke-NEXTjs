@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plan } from "@/types/plan";
 import HeaderLogo from "./HeaderLogo";
 import CalendarCard from "./CalendarCard";
@@ -8,6 +8,11 @@ import RouteMapCard from "./RouteMapCard";
 import TodoList from "./TodoList";
 import CustomModal from "./CustomModal";
 import { supabase } from "@/utils/supabase";
+
+// ==========================================
+// 【定数定義】ローカルストレージのキー名をマジックストリング回避のため定数化
+// ==========================================
+const TEMP_TODO_STORAGE_KEY = "tabisuke_temp_todos";
 
 // Todo項目の型定義
 interface TodoItem {
@@ -36,7 +41,23 @@ export default function PlanRegister({
   plans = [],
 }: PlanRegisterProps) {
   const [todoInput, setTodoInput] = useState("");
+
+  // ==========================================
+  // 【一時保存・復元処理】定数キーを使用してマウント時に読み込み
+  // ==========================================
   const [todoList, setTodoList] = useState<TodoItem[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(TEMP_TODO_STORAGE_KEY);
+    if (saved) {
+      try {
+        setTodoList(JSON.parse(saved));
+      } catch (e) {
+        console.error("一時データの読み込みに失敗しました", e);
+      }
+    }
+  }, []);
+
   const [planTitle, setPlanTitle] = useState("");
 
   // 1. 日付管理
@@ -113,7 +134,9 @@ export default function PlanRegister({
     }
   };
 
-  // やりたいこと（ToDo）の追加
+  // ==========================================
+  // 【やりたいこと追加】定数キーを使用して即時保存
+  // ==========================================
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!todoInput.trim()) return;
@@ -130,13 +153,27 @@ export default function PlanRegister({
       id: Date.now(),
       text: todoInput.trim(),
     };
-    setTodoList((prev) => [...prev, newTodo]);
+
+    const updatedList = [...todoList, newTodo];
+    setTodoList(updatedList);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(TEMP_TODO_STORAGE_KEY, JSON.stringify(updatedList));
+    }
+
     setTodoInput("");
   };
 
-  // やりたいことの削除
+  // ==========================================
+  // 【やりたいこと削除】定数キーを使用して即時保存
+  // ==========================================
   const handleDeleteTodo = (id: number) => {
-    setTodoList((prev) => prev.filter((todo) => todo.id !== id));
+    const updatedList = todoList.filter((todo) => todo.id !== id);
+    setTodoList(updatedList);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(TEMP_TODO_STORAGE_KEY, JSON.stringify(updatedList));
+    }
   };
 
   // 「旅程を登録する」押下時の最終チェック
@@ -170,7 +207,7 @@ export default function PlanRegister({
         start_date: dateRange.startDate,
         end_date: dateRange.endDate || dateRange.startDate,
         destination: locationName,
-        days: todoList,
+        todos: todoList,
       };
 
       // 2. Supabaseへインサート（挿入）
@@ -183,12 +220,17 @@ export default function PlanRegister({
         throw error;
       }
 
-      console.log("Supabaseに保存成功:", data);
-
       // 3. 確認モーダルを閉じる
       setIsConfirmOpen(false);
 
-      // ★ 4. 親コンポーネントに保存成功を通知する（これにより親側の登録完了モーダルが開く）
+      // ==========================================
+      // 【データクリア】定数キーを使用して一時保存データを削除
+      // ==========================================
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(TEMP_TODO_STORAGE_KEY);
+      }
+
+      // 4. 親コンポーネントに保存成功を通知する
       if (onSavePlan && data && data.length > 0) {
         const item = data[0];
         const formattedNewPlan: Plan = {
@@ -202,7 +244,7 @@ export default function PlanRegister({
             endDate: item.end_date,
           },
           location: item.destination,
-          todos: item.days || [],
+          todos: item.todos || [],
         };
         onSavePlan(formattedNewPlan);
       } else {
@@ -216,7 +258,6 @@ export default function PlanRegister({
   };
 
   return (
-    // Home画面と完全に共通のコンテナ幅（max-w-xl）と中央揃え（mx-auto）を適用
     <div className="w-full max-w-xl min-h-screen bg-app-bg text-app-main p-6 space-y-6 mx-auto flex flex-col items-center">
       {/* 1. 上部小さめタイトルロゴ */}
       <HeaderLogo small={true} />
@@ -228,7 +269,7 @@ export default function PlanRegister({
         </p>
       </div>
 
-      {/* 3. マップ表示エリア（幅を親に合わせるためw-full） */}
+      {/* 3. マップ表示エリア */}
       <div className="w-full flex justify-center">
         <RouteMapCard destination={location} />
       </div>
@@ -258,7 +299,7 @@ export default function PlanRegister({
         <TodoList todos={todoList} onDeleteTodo={handleDeleteTodo} />
       </div>
 
-      {/* 5. いつ行きますか？ (FullCalendarによる日付選択) */}
+      {/* 5. いつ行きますか？ */}
       <div className="space-y-3 text-center w-full flex flex-col items-center">
         <h3 className="font-bold text-slate-700 text-lg md:text-xl">
           いつ行きますか？
@@ -277,7 +318,7 @@ export default function PlanRegister({
         </div>
       </div>
 
-      {/* 6. 予定を立てますか？ (タイトル入力 ＆ 保存) */}
+      {/* 6. 予定を立てますか？ */}
       <div className="space-y-3 text-center pt-2 w-full">
         <h3 className="font-bold text-slate-700 text-lg md:text-xl">
           予定を立てますか？
@@ -313,11 +354,16 @@ export default function PlanRegister({
             旅程を登録する
           </button>
 
-          {/* w-full と flex justify-start を使って「戻る」ボタンだけを左寄せにする */}
+          {/* 戻るボタン */}
           <div className="w-full flex justify-start mt-2">
             <button
               type="button"
-              onClick={onBack}
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  localStorage.removeItem(TEMP_TODO_STORAGE_KEY);
+                }
+                onBack();
+              }}
               className="px-6 py-2 bg-slate-200 text-slate-600 font-bold rounded-full shadow-md hover:bg-slate-300 transition text-sm"
             >
               戻る
