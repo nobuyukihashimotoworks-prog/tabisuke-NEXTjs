@@ -16,6 +16,7 @@ interface PlanEditProps {
   plan?: Plan | null;
   plans?: Plan[];
   onBack: () => void;
+  onComplete: () => void;
   onUpdatePlan?: (updatedPlan: Plan) => void;
 }
 
@@ -23,6 +24,7 @@ export default function PlanEdit({
   plan,
   plans = [],
   onBack,
+  onComplete,
   onUpdatePlan,
 }: PlanEditProps) {
   const [title, setTitle] = useState(plan?.title || "");
@@ -196,7 +198,11 @@ export default function PlanEdit({
   // 完了モーダルで「OK」を押したとき（Homeへ戻る）
   const handleCompleteOK = () => {
     setModalState("none");
-    onBack();
+    if (onComplete) {
+      onComplete(); // ★ 2. 完了時は onComplete を呼ぶ
+    } else {
+      onBack();
+    }
   };
 
   return (

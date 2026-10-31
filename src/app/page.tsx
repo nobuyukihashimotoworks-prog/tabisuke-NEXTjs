@@ -1,7 +1,7 @@
 "use client";
 
 import { Plan } from "@/types/plan";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation"; // 追加
 import HeaderLogo from "../components/HeaderLogo";
 import GoogleMapCard from "../components/GoogleMapCard";
@@ -32,7 +32,7 @@ const MESSAGES = [
   "とりあえず行って考えるもアリ。",
 ];
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter(); // 追加
   const searchParams = useSearchParams();
   const screenParam = searchParams.get("screen");
@@ -237,9 +237,15 @@ export default function Home() {
       {currentScreen === "edit" && (
         <PlanEdit
           plan={selectedPlan}
+          // ① 左下の「戻る」ボタンを押したときは詳細画面に戻る
           onBack={() => {
             setCurrentScreen("detail");
-            router.push("/"); // ★Home画面に戻る
+            router.push(`/?screen=detail&id=${selectedPlan?.id}`);
+          }}
+          // ② 編集完了の「OK」を押したときはHome画面に戻る
+          onComplete={() => {
+            setCurrentScreen("home");
+            router.push("/");
           }}
           onUpdatePlan={handleUpdatePlan}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -302,5 +308,22 @@ export default function Home() {
         onClose={handleSaveModalClose}
       />
     </div>
+  );
+}
+
+// ==========================================
+//  Vercelのビルドエラー対策：Suspenseで包む親コンポーネント
+// ==========================================
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-app-bg flex items-center justify-center text-zinc-400">
+          読み込み中...
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }
