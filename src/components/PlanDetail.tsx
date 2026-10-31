@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plan } from "@/types/plan";
+import { Plan, Todo } from "@/types/plan";
 import HeaderLogo from "./HeaderLogo";
 import RouteMapCard from "./RouteMapCard";
 import TodoList from "./TodoList";
@@ -117,18 +117,37 @@ export default function PlanDetail({
     }
     return plan?.date || "";
   };
+  // --- SupabaseへTodo配列を保存する共通関数 ---
+  const updateTodosInSupabase = async (newTodos: Todo[]) => {
+    if (!plan) return;
 
+    try {
+      const { error } = await supabase
+        .from("itineraries")
+        .update({ todos: newTodos })
+        .eq("id", plan.id);
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("Todoの保存エラー:", error);
+      setAlertMessage("データベースへの保存に失敗しました。");
+    }
+  };
   // --- Todoの削除 ---
-  const handleDeleteTodo = (id: number | string) => {
+  const handleDeleteTodo = async (id: number | string) => {
     const nextTodos = todos.filter((t) => t.id !== id);
     setTodos(nextTodos);
     if (onUpdatePlan && plan) {
       onUpdatePlan({ ...plan, todos: nextTodos });
     }
+    // Supabaseへ反映
+    await updateTodosInSupabase(nextTodos);
   };
 
   // --- Todoの追加（30件上限チェック） ---
-  const handleAddTodo = (e: React.FormEvent) => {
+  const handleAddTodo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!todoInput.trim()) return;
 
@@ -150,6 +169,8 @@ export default function PlanDetail({
     if (onUpdatePlan && plan) {
       onUpdatePlan({ ...plan, todos: nextTodos });
     }
+    // Supabaseへ反映
+    await updateTodosInSupabase(nextTodos);
   };
 
   // --- 削除完了画面で「OK」を押した時 ---

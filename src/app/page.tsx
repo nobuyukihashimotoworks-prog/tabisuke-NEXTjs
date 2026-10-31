@@ -2,6 +2,7 @@
 
 import { Plan } from "@/types/plan";
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation"; // 追加
 import HeaderLogo from "../components/HeaderLogo";
 import GoogleMapCard from "../components/GoogleMapCard";
 import SearchBar from "../components/SearchBar";
@@ -32,6 +33,10 @@ const MESSAGES = [
 ];
 
 export default function Home() {
+  const router = useRouter(); // 追加
+  const searchParams = useSearchParams();
+  const screenParam = searchParams.get("screen");
+  const idParam = searchParams.get("id");
   // 最初に空文字で初期化し、マウント後にブラウザ側でランダムなメッセージをセットする
   const [message, setMessage] = useState("");
 
@@ -53,11 +58,20 @@ export default function Home() {
   // 登録完了モーダルの状態管理
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
-  // 画面状態 ('home' | 'register' | 'detail' | 'edit')
-  const [currentScreen, setCurrentScreen] = useState("home");
+  // 画面状態: URLにパラメータがあればそれを初期値にする
+  const [currentScreen, setCurrentScreen] = useState(screenParam || "home");
 
   // 保存された旅程リスト（最初は空配列からスタート）
   const [plans, setPlans] = useState<Plan[]>([]);
+
+  // URLのパラメータが変更されたときに画面状態を確実に同期する
+  useEffect(() => {
+    if (screenParam) {
+      setCurrentScreen(screenParam);
+    } else {
+      setCurrentScreen("home");
+    }
+  }, [screenParam]);
 
   // ★ Supabaseからデータを取得する処理を再利用可能な関数として定義
   const fetchPlans = useCallback(async () => {
@@ -82,12 +96,21 @@ export default function Home() {
           endDate: item.end_date,
         },
         location: item.destination,
-        todos: item.days || [],
+        todos: item.todos || [],
       }));
 
       setPlans(formattedPlans);
+      // ★ URLに id が指定されている場合、データ取得後に対応するプランを復元する
+      if (idParam) {
+        const targetPlan = formattedPlans.find(
+          (p) => String(p.id) === String(idParam),
+        );
+        if (targetPlan) {
+          setSelectedPlan(targetPlan);
+        }
+      }
     }
-  }, []);
+  }, [idParam]);
 
   // 起動時にSupabaseからデータを取得する
   useEffect(() => {
@@ -116,15 +139,17 @@ export default function Home() {
   const handleDateSelect = (dateStr: string) => {
     setSelectedDate(dateStr);
   };
-
+  // プランを選択して詳細画面を開く時
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handlePlanSelect = (plan: any) => {
     setSelectedPlan(plan);
     setCurrentScreen("detail");
+    router.push(`/?screen=detail&id=${plan.id}`); // ★URLを更新
   };
-
+  // 削除時の処理
   const handleDeletePlan = (planId: string | number) => {
     setPlans((prev) => prev.filter((p) => String(p.id) !== String(planId)));
+    router.push("/"); // ★ホームに戻る
   };
 
   const handleUpdatePlan = (updatedPlan: Plan) => {
@@ -150,6 +175,7 @@ export default function Home() {
     setSearchLocation(finalLocation);
     setIsModalOpen(false);
     setCurrentScreen("register");
+    router.push("/?screen=register"); // ★URLを更新
   };
 
   const handleCloseModal = () => {
@@ -170,6 +196,7 @@ export default function Home() {
     setIsSaveModalOpen(false); // モーダルを閉じる
     setCurrentScreen("home"); // ホーム画面に戻る
     fetchPlans(); // 最新データを再取得してカレンダーに反映
+    router.push("/"); // ★ホームに戻る
   };
 
   return (
@@ -181,6 +208,7 @@ export default function Home() {
           onBack={() => {
             setCurrentScreen("home");
             fetchPlans(); // ★ 登録画面から戻る時に最新データを再取得する
+            router.push("/"); // ★戻る時はルートへ
           }}
           onSavePlan={handleSavePlan}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -192,10 +220,16 @@ export default function Home() {
       {currentScreen === "detail" && (
         <PlanDetail
           plan={selectedPlan}
-          onBack={() => setCurrentScreen("home")}
+          onBack={() => {
+            setCurrentScreen("home");
+            router.push("/"); // ★戻る時はルートへ
+          }}
           onDeletePlan={handleDeletePlan}
           onUpdatePlan={handleUpdatePlan}
-          onEditPlan={() => setCurrentScreen("edit")}
+          onEditPlan={() => {
+            setCurrentScreen("edit");
+            router.push(`/?screen=edit&id=${selectedPlan?.id}`); // ★編集画面用のURLへ
+          }}
         />
       )}
 
@@ -203,7 +237,10 @@ export default function Home() {
       {currentScreen === "edit" && (
         <PlanEdit
           plan={selectedPlan}
-          onBack={() => setCurrentScreen("home")}
+          onBack={() => {
+            setCurrentScreen("detail");
+            router.push("/"); // ★Home画面に戻る
+          }}
           onUpdatePlan={handleUpdatePlan}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           plans={plans as any}
