@@ -33,10 +33,11 @@ interface DestinationObjectType {
   mainText?: string;
   name?: string;
   description?: string;
-  [key: string]: unknown; // 予期せぬプロパティが含まれても安全に受け取るための型
+  [key: string]: unknown;
 }
 
 type DestinationType = string | DestinationObjectType | null;
+
 interface PlanRegisterProps {
   location: DestinationType;
   onBack: () => void;
@@ -58,31 +59,39 @@ export default function PlanRegister({
     endDate: null,
   });
 
+  // 目的地を state で管理し、リロード時にも復元できるようにする
+  const [currentLocation, setCurrentLocation] =
+    useState<DestinationType>(location);
+
   // モーダル用の表示ステート
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
 
   // 目的地名の安全な取得
   const locationName =
-    typeof location === "object" && location !== null
-      ? location.mainText || location.name || location.description || "目的地"
-      : location || "目的地";
+    typeof currentLocation === "object" && currentLocation !== null
+      ? currentLocation.mainText ||
+        currentLocation.name ||
+        currentLocation.description ||
+        "目的地"
+      : currentLocation || "目的地";
 
   // ==========================================
   // 【一括保存ヘルパー】現在の全入力をローカルストレージへ保存
+  // ※ 第3引数を TodoItem[] に修正
   // ==========================================
   const saveAllToStorage = (
     currentTitle: string,
     currentDateRange: DateRangeType,
     currentTodoList: TodoItem[],
-    currentLocation: DestinationType,
+    targetLocation: DestinationType,
   ) => {
     if (typeof window !== "undefined") {
       const payload = {
         planTitle: currentTitle,
         dateRange: currentDateRange,
         todoList: currentTodoList,
-        location: currentLocation,
+        location: targetLocation,
       };
       localStorage.setItem(TEMP_PLAN_REGISTER_KEY, JSON.stringify(payload));
     }
@@ -106,6 +115,7 @@ export default function PlanRegister({
         if (parsed.planTitle) setPlanTitle(parsed.planTitle);
         if (parsed.dateRange) setDateRange(parsed.dateRange);
         if (parsed.todoList) setTodoList(parsed.todoList);
+        if (parsed.location) setCurrentLocation(parsed.location);
       } catch (e) {
         console.error("一時保存データの復元に失敗しました", e);
       }
@@ -134,7 +144,7 @@ export default function PlanRegister({
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setPlanTitle(newTitle);
-    saveAllToStorage(newTitle, dateRange, todoList, location);
+    saveAllToStorage(newTitle, dateRange, todoList, currentLocation);
   };
 
   // カレンダーの日付選択
@@ -175,7 +185,7 @@ export default function PlanRegister({
     }
 
     setDateRange(updatedDateRange);
-    saveAllToStorage(planTitle, updatedDateRange, todoList, location);
+    saveAllToStorage(planTitle, updatedDateRange, todoList, currentLocation);
   };
 
   // ==========================================
@@ -199,7 +209,7 @@ export default function PlanRegister({
 
     const updatedList = [...todoList, newTodo];
     setTodoList(updatedList);
-    saveAllToStorage(planTitle, dateRange, updatedList, location);
+    saveAllToStorage(planTitle, dateRange, updatedList, currentLocation);
     setTodoInput("");
   };
 
@@ -209,12 +219,12 @@ export default function PlanRegister({
   const handleDeleteTodo = (id: number) => {
     const updatedList = todoList.filter((todo) => todo.id !== id);
     setTodoList(updatedList);
-    saveAllToStorage(planTitle, dateRange, updatedList, location);
+    saveAllToStorage(planTitle, dateRange, updatedList, currentLocation);
   };
 
   // 「旅程を登録する」押下時の最終チェック（目的地ガードを追加）
   const handleOpenConfirm = () => {
-    if (!location || locationName === "目的地") {
+    if (!currentLocation || locationName === "目的地") {
       setAlertMessage(
         "目的地が正しく設定されていません。最初からやり直してください。",
       );
@@ -306,7 +316,7 @@ export default function PlanRegister({
 
       {/* 3. マップ表示エリア */}
       <div className="w-full flex justify-center">
-        <RouteMapCard destination={location} />
+        <RouteMapCard destination={currentLocation} />
       </div>
 
       {/* 4. やりたいことは何ですか？ (ToDoリスト) */}
