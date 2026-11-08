@@ -10,9 +10,9 @@ import CustomModal from "./CustomModal";
 import { supabase } from "@/utils/supabase";
 
 // ==========================================
-// 【定数定義】ローカルストレージのキー名をマジックストリング回避のため定数化
+// 【定数定義】4項目すべてをまとめて保存するためのストレージキー
 // ==========================================
-const TEMP_TODO_STORAGE_KEY = "tabisuke_temp_todos";
+const TEMP_PLAN_REGISTER_KEY = "tabisuke_temp_plan_register_data";
 
 // Todo項目の型定義
 interface TodoItem {
@@ -41,32 +41,14 @@ export default function PlanRegister({
   plans = [],
 }: PlanRegisterProps) {
   const [todoInput, setTodoInput] = useState("");
-
-  // ==========================================
-  // 【一時保存・復元処理】定数キーを使用してマウント時に読み込み
-  // ==========================================
   const [todoList, setTodoList] = useState<TodoItem[]>([]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(TEMP_TODO_STORAGE_KEY);
-    if (saved) {
-      try {
-        setTodoList(JSON.parse(saved));
-      } catch (e) {
-        console.error("一時データの読み込みに失敗しました", e);
-      }
-    }
-  }, []);
-
   const [planTitle, setPlanTitle] = useState("");
-
-  // 1. 日付管理
   const [dateRange, setDateRange] = useState<DateRangeType>({
     startDate: null,
     endDate: null,
   });
 
-  // 2. モーダル用の表示ステート
+  // モーダル用の表示ステート
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
 
@@ -75,6 +57,50 @@ export default function PlanRegister({
     typeof location === "object" && location !== null
       ? location.mainText || location.name || location.description || "目的地"
       : location || "目的地";
+
+  // ==========================================
+  // 【一括保存ヘルパー】現在の全入力をローカルストレージへ保存
+  // ==========================================
+  const saveAllToStorage = (
+    currentTitle: string,
+    currentDateRange: DateRangeType,
+    currentTodoList: TodoItem[],
+    currentLocation: any,
+  ) => {
+    if (typeof window !== "undefined") {
+      const payload = {
+        planTitle: currentTitle,
+        dateRange: currentDateRange,
+        todoList: currentTodoList,
+        location: currentLocation,
+      };
+      localStorage.setItem(TEMP_PLAN_REGISTER_KEY, JSON.stringify(payload));
+    }
+  };
+
+  // 一時保存データのクリーンアップ用
+  const clearTempStorage = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(TEMP_PLAN_REGISTER_KEY);
+    }
+  };
+
+  // ==========================================
+  // 【マウント時の一括復元処理】
+  // ==========================================
+  useEffect(() => {
+    const saved = localStorage.getItem(TEMP_PLAN_REGISTER_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.planTitle) setPlanTitle(parsed.planTitle);
+        if (parsed.dateRange) setDateRange(parsed.dateRange);
+        if (parsed.todoList) setTodoList(parsed.todoList);
+      } catch (e) {
+        console.error("一時保存データの復元に失敗しました", e);
+      }
+    }
+  }, []);
 
   // 表示用・保存用の共通日付フォーマット
   const formattedDateText = dateRange.endDate
@@ -94,15 +120,20 @@ export default function PlanRegister({
     });
   };
 
+  // タイトル変更時の即時セーブ連動
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setPlanTitle(newTitle);
+    saveAllToStorage(newTitle, dateRange, todoList, location);
+  };
+
   // カレンダーの日付選択
   const handleDateSelect = (selectedDateStr: string) => {
-    // A. タップした単一の要素がすでに予約済みかチェック
     if (isDateBooked(selectedDateStr)) {
       setAlertMessage("ダブルブッキングはできません！！");
       return;
     }
 
-    // B. 期間選択時（開始日〜選択した終了日の間に予約済みの日が含まれていないかチェック）
     if (dateRange.startDate && !dateRange.endDate) {
       if (selectedDateStr >= dateRange.startDate) {
         const hasOverlap = plans.some((plan) => {
@@ -124,24 +155,26 @@ export default function PlanRegister({
       }
     }
 
-    // 通常の日付選択処理
+    let updatedDateRange: DateRangeType;
     if (!dateRange.startDate || (dateRange.startDate && dateRange.endDate)) {
-      setDateRange({ startDate: selectedDateStr, endDate: null });
+      updatedDateRange = { startDate: selectedDateStr, endDate: null };
     } else if (selectedDateStr >= dateRange.startDate) {
-      setDateRange({ ...dateRange, endDate: selectedDateStr });
+      updatedDateRange = { ...dateRange, endDate: selectedDateStr };
     } else {
-      setDateRange({ startDate: selectedDateStr, endDate: null });
+      updatedDateRange = { startDate: selectedDateStr, endDate: null };
     }
+
+    setDateRange(updatedDateRange);
+    saveAllToStorage(planTitle, updatedDateRange, todoList, location);
   };
 
   // ==========================================
-  // 【やりたいこと追加】定数キーを使用して即時保存
+  // 【やりたいこと追加】即時保存を全項目オブジェクトに連動
   // ==========================================
   const handleAddTodo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!todoInput.trim()) return;
 
-    // 30件上限チェック
     if (todoList.length >= 30) {
       setAlertMessage(
         "登録できるのは30項目までです。詰め込み過ぎると楽しめませんよ？",
@@ -156,28 +189,28 @@ export default function PlanRegister({
 
     const updatedList = [...todoList, newTodo];
     setTodoList(updatedList);
-
-    if (typeof window !== "undefined") {
-      localStorage.setItem(TEMP_TODO_STORAGE_KEY, JSON.stringify(updatedList));
-    }
-
+    saveAllToStorage(planTitle, dateRange, updatedList, location);
     setTodoInput("");
   };
 
   // ==========================================
-  // 【やりたいこと削除】定数キーを使用して即時保存
+  // 【やりたいこと削除】即時保存を全項目オブジェクトに連動
   // ==========================================
   const handleDeleteTodo = (id: number) => {
     const updatedList = todoList.filter((todo) => todo.id !== id);
     setTodoList(updatedList);
-
-    if (typeof window !== "undefined") {
-      localStorage.setItem(TEMP_TODO_STORAGE_KEY, JSON.stringify(updatedList));
-    }
+    saveAllToStorage(planTitle, dateRange, updatedList, location);
   };
 
-  // 「旅程を登録する」押下時の最終チェック
+  // 「旅程を登録する」押下時の最終チェック（目的地ガードを追加）
   const handleOpenConfirm = () => {
+    if (!location || locationName === "目的地") {
+      setAlertMessage(
+        "目的地が正しく設定されていません。最初からやり直してください。",
+      );
+      return;
+    }
+
     if (!dateRange.startDate) {
       setAlertMessage("カレンダーから日付を選択してください");
       return;
@@ -201,7 +234,6 @@ export default function PlanRegister({
   // モーダル内で「確定」を押した時の最終登録処理
   const handleFinalConfirm = async () => {
     try {
-      // 1. Supabaseのitinerariesテーブルに保存するデータ構造を作成
       const newRecord = {
         title: planTitle.trim(),
         start_date: dateRange.startDate,
@@ -210,7 +242,6 @@ export default function PlanRegister({
         todos: todoList,
       };
 
-      // 2. Supabaseへインサート（挿入）
       const { data, error } = await supabase
         .from("itineraries")
         .insert([newRecord])
@@ -220,17 +251,11 @@ export default function PlanRegister({
         throw error;
       }
 
-      // 3. 確認モーダルを閉じる
       setIsConfirmOpen(false);
 
-      // ==========================================
-      // 【データクリア】定数キーを使用して一時保存データを削除
-      // ==========================================
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(TEMP_TODO_STORAGE_KEY);
-      }
+      // 【データクリア】登録完了時に一時保存データを綺麗に削除
+      clearTempStorage();
 
-      // 4. 親コンポーネントに保存成功を通知する
       if (onSavePlan && data && data.length > 0) {
         const item = data[0];
         const formattedNewPlan: Plan = {
@@ -328,7 +353,7 @@ export default function PlanRegister({
           <input
             type="text"
             value={planTitle}
-            onChange={(e) => setPlanTitle(e.target.value)}
+            onChange={handleTitleChange}
             placeholder="タイトルを入れてください（30文字以内）"
             className={`w-full py-2.5 px-4 rounded-full bg-white text-slate-800 text-sm shadow-sm border focus:outline-none text-center truncate transition-colors ${
               isTitleTooLong
@@ -359,9 +384,7 @@ export default function PlanRegister({
             <button
               type="button"
               onClick={() => {
-                if (typeof window !== "undefined") {
-                  localStorage.removeItem(TEMP_TODO_STORAGE_KEY);
-                }
+                clearTempStorage();
                 onBack();
               }}
               className="px-6 py-2 bg-slate-200 text-slate-600 font-bold rounded-full shadow-md hover:bg-slate-300 transition text-sm"
