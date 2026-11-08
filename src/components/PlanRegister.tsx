@@ -26,9 +26,19 @@ interface DateRangeType {
   endDate: string | null;
 }
 
+// ==========================================
+// 【型定義】目的地データの型を厳密に定義
+// ==========================================
+interface DestinationObjectType {
+  mainText?: string;
+  name?: string;
+  description?: string;
+  [key: string]: unknown; // 予期せぬプロパティが含まれても安全に受け取るための型
+}
+
+type DestinationType = string | DestinationObjectType | null;
 interface PlanRegisterProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  location: any;
+  location: DestinationType;
   onBack: () => void;
   onSavePlan: (newPlan: Plan) => void;
   plans?: Plan[];
@@ -65,7 +75,7 @@ export default function PlanRegister({
     currentTitle: string,
     currentDateRange: DateRangeType,
     currentTodoList: TodoItem[],
-    currentLocation: any,
+    currentLocation: DestinationType,
   ) => {
     if (typeof window !== "undefined") {
       const payload = {
